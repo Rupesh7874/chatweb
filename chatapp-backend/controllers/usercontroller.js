@@ -8,6 +8,8 @@ const group = require('../models/groupmodel');
 
 exports.userragister = async (req, res) => {
     try {
+        console.log(req.body);
+
         const { name, email, password, confirmpassword, age, gender } = req.body;
         const cheakmail = await usermodel.findOne({ email });
         if (cheakmail) {
@@ -206,5 +208,19 @@ exports.getallgroupmember = async (req, res) => {
     catch (err) {
         console.log(err);
         res.status(500).json({ message: "Failed getallgroupmember", error: err.message });
+    }
+}
+
+exports.allusers = async (req, res) => {
+    try {
+        const currentUserId = req.query.userId; // passed from frontend
+        const users = await usermodel.find({ _id: { $ne: currentUserId } });
+        console.log(users);
+        
+        res.status(200).json(users);
+    }
+    catch (error) {
+        console.log(err);
+        res.status(500).json({ message: "Failed viewalluser", error: err.message });
     }
 }

@@ -26,7 +26,6 @@ module.exports = function (io) {
 
         console.log(`Client connected : userId: ${socket.userId}`);
 
-
         socket.on('join', () => {
             socket.join(socket.userId);
             console.log(`User ${socket.userId} successfully joined personal room`);

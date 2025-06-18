@@ -4,11 +4,13 @@ const dotenv = require('dotenv');
 const path=require('path');
 const conectdb = require('./confige/db');
 const http = require('http')
+const cors=require('cors');
 const { Server } = require('socket.io');
 const socketHandler = require('./socket/sockethandler');
 
 dotenv.config();
 conectdb();
+app.use(cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

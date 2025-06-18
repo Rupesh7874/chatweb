@@ -19,7 +19,7 @@ const userschema = new mongoose.Schema({
     },
     age: {
         type: String,
-        required: true
+        // required: true
     },
      roles: {
      type: String,
@@ -28,7 +28,7 @@ const userschema = new mongoose.Schema({
     },
     gender: {
         type: String,
-        required: true
+        // required: true
     },
     isActive: {
         type: String
