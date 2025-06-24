@@ -47,7 +47,8 @@ module.exports = function (io) {
                     fileUrl,
                     status: 'sent'
                 });
-
+                // console.log("newMsg",newMsg);
+                
                 if (isGroup) {
                     // 🔁 Emit to the entire group room (all joined members)
                     io.to(receiverId).emit('receiveMessage', newMsg);
@@ -71,9 +72,7 @@ module.exports = function (io) {
             });
         });
 
-        //message seen
-
-
+     
 
 
         socket.on('disconnecting', () => {

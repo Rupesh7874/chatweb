@@ -54,10 +54,13 @@ function Chat() {
 
     // 🔁 Receive messages
     const handleReceiveMessage = (msg) => {
-      socket.current.emit("messageDelivered", {
-        messageId: msg._id,
-        receiverId: currentUser._id,
-      });
+      if (msg.receiver === currentUser._id) {
+        socket.current.emit("messageDelivered", {
+          messageId: msg._id,
+          receiverId: currentUser._id,
+        });
+      }
+
 
       if (msg.sender === selectedUser?._id || msg.receiver === selectedUser?._id) {
         setMessages((prev) => [...prev, msg]);
@@ -74,13 +77,58 @@ function Chat() {
     };
     socket.current.on("typing", handleTyping);
 
+    // ✅ Seen confirmation listener
+    socket.current.on("messageSeenConfirmation", ({ messageId }) => {
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg._id === messageId ? { ...msg, status: "seen" } : msg
+        )
+      );
+    });
+
+    // 🧹 Cleanup
     return () => {
       socket.current.off("receiveMessage", handleReceiveMessage);
       socket.current.off("typing", handleTyping);
+      socket.current.off("messageSeenConfirmation");
       socket.current.disconnect();
       socket.current = null;
     };
   }, [currentUser?._id, selectedUser, selectedUser?._id]);
+
+  // ✅ Emit seen for unseen messages when chat is open
+  useEffect(() => {
+    if (!socket.current || !selectedUser || !messages.length || !currentUser?._id) return;
+
+    const unseenMessages = messages.filter(
+      (msg) =>
+        msg.sender === selectedUser._id &&
+        msg.receiver === currentUser._id &&
+        msg.status !== "seen"
+    );
+
+    if (unseenMessages.length) {
+      console.log("📨 Marking as seen:", unseenMessages.map((msg) => msg._id));
+    }
+
+    // ✅ Only emit once per unique message
+    const emitted = new Set();
+
+    unseenMessages.forEach((msg) => {
+      if (!emitted.has(msg._id)) {
+        socket.current.emit("messageSeen", {
+          messageId: msg._id,
+          receiverId: currentUser._id,
+        });
+        emitted.add(msg._id);
+      }
+    });
+  }, [selectedUser, messages, currentUser?._id]);
+
+
+
+
+
 
 
   // ✅ Load contacts
@@ -105,8 +153,6 @@ function Chat() {
         }
       });
   }, [currentUser]);
-
-
 
   // ✅ Send message
   const handleSend = async (formData) => {
