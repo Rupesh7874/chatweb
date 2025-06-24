@@ -35,18 +35,45 @@ function MessageList({ messages, currentUserId }) {
                 maxWidth: '60%',
                 wordBreak: 'break-word',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                position: 'relative',
               }}
             >
+              {/* Message Text */}
               {msg.content && <div>{msg.content}</div>}
+
+              {/* Image */}
               {msg.fileUrl && (
                 <img
                   src={`http://localhost:8888${msg.fileUrl}`}
                   alt="sent"
-                  style={{ maxWidth: '200px', borderRadius: '8px', marginTop: msg.content ? '8px' : 0 }}
+                  style={{
+                    maxWidth: '200px',
+                    borderRadius: '8px',
+                    marginTop: msg.content ? '8px' : 0,
+                  }}
                 />
               )}
-              <div style={{ fontSize: '0.75rem', color: '#777', marginTop: '4px', textAlign: 'right' }}>
-                {formatTime(msg.timestamp)}
+
+              {/* Timestamp + Status */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: '0.75rem',
+                  color: '#777',
+                  marginTop: '4px',
+                }}
+              >
+                <span>{formatTime(msg.timestamp)}</span>
+                {isSender && msg.status && (
+                  <span style={{ marginLeft: '8px' }}>
+                    {msg.status === 'seen'
+                      ? '✓✓ Seen'
+                      : msg.status === 'delivered'
+                      ? '✓✓ Delivered'
+                      : '✓ Sent'}
+                  </span>
+                )}
               </div>
             </div>
           </div>

@@ -1,7 +1,6 @@
 const jwt = require("jsonwebtoken");
 const message = require('../models/messagemodel');
 const code = require('../utils/statuscodemessage');
-const messagemodel = require('../models/messagemodel')
 
 require('dotenv').config();
 
@@ -14,7 +13,6 @@ module.exports = function (io) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             socket.userId = decoded.userId;
-
             next();
         } catch (err) {
             console.error("Invalid token", err.message);
@@ -40,7 +38,7 @@ module.exports = function (io) {
         socket.on('message', async ({ senderId, receiverId, content, isGroup, fileUrl }) => {
             try {
                 // console.log("fileurl",fileUrl);
-                
+
                 const newMsg = await message.create({
                     sender: senderId,
                     receiver: receiverId,
@@ -49,7 +47,7 @@ module.exports = function (io) {
                     fileUrl,
                     status: 'sent'
                 });
-                
+
                 if (isGroup) {
                     // 🔁 Emit to the entire group room (all joined members)
                     io.to(receiverId).emit('receiveMessage', newMsg);
@@ -64,6 +62,20 @@ module.exports = function (io) {
                 socket.emit('error', { message: 'Message failed to send' });
             }
         });
+
+        // typing indecator
+        socket.on("typing", ({ to, typing }) => {
+            socket.to(to).emit("typing", {
+                from: socket.userId,
+                typing,
+            });
+        });
+
+        //message seen
+
+
+
+
         socket.on('disconnecting', () => {
             console.log(`User disconnected: ${socket.userId}`);
         });

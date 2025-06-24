@@ -3,7 +3,7 @@ import ChatHeader from './ChatHeader';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 
-function ChatPanel({ selectedUser, messages, onSend, currentUserId }) {
+function ChatPanel({ selectedUser, messages, onSend, currentUserId, onTyping, isTyping }) {
   if (!selectedUser) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -13,24 +13,39 @@ function ChatPanel({ selectedUser, messages, onSend, currentUserId }) {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', }}>
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        overflow: 'hidden',
+      }}
+    >
       {/* Header */}
       <div style={{ flexShrink: 0 }}>
         <ChatHeader selectedUser={selectedUser} />
       </div>
 
-      {/* Scrollable messages area */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      {/* Message List */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 1rem' }}>
         <MessageList
           messages={messages}
           currentUserId={currentUserId}
           selectedUser={selectedUser}
         />
+
+        {/* Typing indicator */}
+        {isTyping && (
+          <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '10px' }}>
+            {selectedUser.name} is typing...
+          </div>
+        )}
       </div>
 
-      {/* Input fixed at bottom */}
+      {/* Input Box */}
       <div style={{ flexShrink: 0 }}>
-        <MessageInput onSend={onSend} />
+        <MessageInput onSend={onSend} onTyping={onTyping} />
       </div>
     </div>
   );

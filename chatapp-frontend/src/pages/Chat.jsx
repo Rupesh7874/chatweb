@@ -11,6 +11,7 @@ function Chat() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
   const socket = useRef(null);
 
   // ✅ Load user from localStorage
@@ -19,7 +20,6 @@ function Chat() {
     const user = localStorage.getItem("user");
 
     if (!token || !user) {
-      console.log("🔴 No token or user, redirecting...");
       window.location.replace("/login");
       return;
     }
@@ -29,7 +29,6 @@ function Chat() {
       if (!parsedUser._id) throw new Error("User ID missing");
       setCurrentUser(parsedUser);
     } catch (err) {
-      console.error("❌ Invalid user data in localStorage", err);
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.replace("/login");
@@ -37,25 +36,24 @@ function Chat() {
     setLoading(false);
   }, []);
 
-  // ✅ Connect socket only once
+  // ✅ Connect to Socket.IO
   useEffect(() => {
     if (!currentUser?._id) return;
-
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    if (socket.current) {
-      socket.current.disconnect(); // 🔁 clear old socket before making new one
-    }
+    if (socket.current) socket.current.disconnect();
 
     socket.current = io("http://localhost:8888", {
       auth: { token },
     });
 
-    const handleReceiveMessage = (msg) => {
-      console.log("📩 New message received:", msg);
+    socket.current.on("connect", () => {
+      socket.current.emit("join");
+    });
 
-      // Emit delivered status to server
+    // 🔁 Receive messages
+    const handleReceiveMessage = (msg) => {
       socket.current.emit("messageDelivered", {
         messageId: msg._id,
         receiverId: currentUser._id,
@@ -66,22 +64,24 @@ function Chat() {
       }
     };
 
-
-    socket.current.on("connect", () => {
-      // console.log("✅ Socket connected:", socket.current.id);
-      socket.current.emit("join");
-    });
-
-    // 👇 Important: remove previous listener before attaching new
-    socket.current.off("receiveMessage");
     socket.current.on("receiveMessage", handleReceiveMessage);
 
+    // 🟡 Typing indicator
+    const handleTyping = ({ from, typing }) => {
+      if (selectedUser && from === selectedUser._id) {
+        setIsTyping(typing);
+      }
+    };
+    socket.current.on("typing", handleTyping);
+
     return () => {
-      socket.current?.off("receiveMessage", handleReceiveMessage);
-      socket.current?.disconnect();
+      socket.current.off("receiveMessage", handleReceiveMessage);
+      socket.current.off("typing", handleTyping);
+      socket.current.disconnect();
       socket.current = null;
     };
-  }, [currentUser?._id, selectedUser?._id]); // 👈 includes selectedUser too
+  }, [currentUser?._id, selectedUser, selectedUser?._id]);
+
 
   // ✅ Load contacts
   useEffect(() => {
@@ -90,9 +90,7 @@ function Chat() {
 
     axios
       .get(`http://localhost:8888/api/v1/user/allusers?userId=${currentUser._id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
         const usersList = Array.isArray(res.data?.data) ? res.data.data : [];
@@ -100,7 +98,6 @@ function Chat() {
         setUsers(filtered);
       })
       .catch((err) => {
-        console.error("Failed to load users:", err);
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
@@ -109,28 +106,22 @@ function Chat() {
       });
   }, [currentUser]);
 
-  // ✅ Send message (only emit, no local setMessages)
+
+
+  // ✅ Send message
   const handleSend = async (formData) => {
     const text = formData.get("content");
     const file = formData.get("usermassage");
-    // console.log("message 1",text);
-    // console.log("message 1",file);
 
     let fileUrl = null;
 
-    // ✅ Upload image if available
     if (file) {
       const uploadRes = await axios.post("http://localhost:8888/api/v1/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
       fileUrl = uploadRes.data?.url;
-      // console.log("message2",fileUrl);
-
     }
 
-    // ✅ Emit message
     const newMsg = {
       senderId: currentUser._id,
       receiverId: selectedUser._id,
@@ -142,17 +133,15 @@ function Chat() {
     socket.current.emit("message", newMsg);
   };
 
-
   if (loading || !currentUser) return null;
 
   return (
     <div style={{ display: "flex", height: "100vh", backgroundColor: "#f5f5f5" }}>
       <div style={{ width: "25%", borderRight: "1px solid #ccc", padding: "1rem" }}>
         <UserInfo user={currentUser} />
-        <ContactList users={users} onSelectUser={(user) => {
-          setSelectedUser(user);
-          // setMessages([]); // reset messages when changing contact
-        }}
+        <ContactList
+          users={users}
+          onSelectUser={(user) => setSelectedUser(user)}
           selectedUserId={selectedUser?._id}
         />
       </div>
@@ -162,6 +151,14 @@ function Chat() {
         messages={messages}
         onSend={handleSend}
         currentUserId={currentUser._id}
+        isTyping={isTyping}
+        onTyping={(typing) => {
+          if (!selectedUser || !socket.current) return;
+          socket.current.emit("typing", {
+            to: selectedUser._id,
+            typing,
+          });
+        }}
       />
     </div>
   );
