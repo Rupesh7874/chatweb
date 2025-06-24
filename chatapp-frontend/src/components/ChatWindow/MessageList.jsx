@@ -1,6 +1,17 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 function MessageList({ messages, currentUserId }) {
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const formatTime = (isoString) => {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div style={{ padding: '1rem' }}>
       {messages.map((msg, index) => {
@@ -16,35 +27,32 @@ function MessageList({ messages, currentUserId }) {
               marginBottom: '1rem',
             }}
           >
-            {msg.content && (
-              <div
-                style={{
-                  backgroundColor: isSender ? '#DCF8C6' : '#ffffff',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  maxWidth: '60%',
-                  wordBreak: 'break-word',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                }}
-              >
-                {msg.content}
+            <div
+              style={{
+                backgroundColor: isSender ? '#DCF8C6' : '#ffffff',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                maxWidth: '60%',
+                wordBreak: 'break-word',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+              }}
+            >
+              {msg.content && <div>{msg.content}</div>}
+              {msg.fileUrl && (
+                <img
+                  src={`http://localhost:8888${msg.fileUrl}`}
+                  alt="sent"
+                  style={{ maxWidth: '200px', borderRadius: '8px', marginTop: msg.content ? '8px' : 0 }}
+                />
+              )}
+              <div style={{ fontSize: '0.75rem', color: '#777', marginTop: '4px', textAlign: 'right' }}>
+                {formatTime(msg.timestamp)}
               </div>
-            )}
-
-            {msg.fileUrl && (
-              <img
-                src={`http://localhost:8888${msg.fileUrl}`}
-                alt="attachment"
-                style={{
-                  maxWidth: '200px',
-                  borderRadius: '8px',
-                  marginTop: msg.content ? '8px' : 0,
-                }}
-              />
-            )}
+            </div>
           </div>
         );
       })}
+      <div ref={bottomRef} />
     </div>
   );
 }

@@ -24,11 +24,11 @@ module.exports = function (io) {
 
     io.on("connection", (socket) => {
 
-        console.log(`Client connected : userId: ${socket.userId}`);
+        // console.log(`Client connected : userId: ${socket.userId}`);
 
         socket.on('join', () => {
             socket.join(socket.userId);
-            console.log(`User ${socket.userId} successfully joined personal room`);
+            // console.log(`User ${socket.userId} successfully joined personal room`);
         });
 
         socket.on('joinGroup', (groupId) => {
@@ -46,9 +46,9 @@ module.exports = function (io) {
                     receiver: receiverId,
                     content,
                     isGroup: isGroup || false,
-                    fileUrl
+                    fileUrl,
+                    status: 'sent'
                 });
-                console.log("backnewmsg",newMsg);
                 
                 if (isGroup) {
                     // 🔁 Emit to the entire group room (all joined members)
@@ -64,7 +64,6 @@ module.exports = function (io) {
                 socket.emit('error', { message: 'Message failed to send' });
             }
         });
-
         socket.on('disconnecting', () => {
             console.log(`User disconnected: ${socket.userId}`);
         });

@@ -55,17 +55,20 @@ function Chat() {
     const handleReceiveMessage = (msg) => {
       console.log("📩 New message received:", msg);
 
-      // Only show if it's related to current selected user
-      if (
-        msg.sender === selectedUser?._id ||
-        msg.receiver === selectedUser?._id
-      ) {
+      // Emit delivered status to server
+      socket.current.emit("messageDelivered", {
+        messageId: msg._id,
+        receiverId: currentUser._id,
+      });
+
+      if (msg.sender === selectedUser?._id || msg.receiver === selectedUser?._id) {
         setMessages((prev) => [...prev, msg]);
       }
     };
 
+
     socket.current.on("connect", () => {
-      console.log("✅ Socket connected:", socket.current.id);
+      // console.log("✅ Socket connected:", socket.current.id);
       socket.current.emit("join");
     });
 
@@ -107,37 +110,37 @@ function Chat() {
   }, [currentUser]);
 
   // ✅ Send message (only emit, no local setMessages)
- const handleSend = async (formData) => {
-  const text = formData.get("content");
-  const file = formData.get("usermassage");
-  // console.log("message 1",text);
-  // console.log("message 1",file);
-  
-  let fileUrl = null;
+  const handleSend = async (formData) => {
+    const text = formData.get("content");
+    const file = formData.get("usermassage");
+    // console.log("message 1",text);
+    // console.log("message 1",file);
 
-  // ✅ Upload image if available
-  if (file) {
-    const uploadRes = await axios.post("http://localhost:8888/api/v1/upload", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    fileUrl = uploadRes.data?.url;
-    // console.log("message2",fileUrl);
-    
-  }
+    let fileUrl = null;
 
-  // ✅ Emit message
-  const newMsg = {
-    senderId: currentUser._id,
-    receiverId: selectedUser._id,
-    content: text,
-    isGroup: false,
-    fileUrl,
+    // ✅ Upload image if available
+    if (file) {
+      const uploadRes = await axios.post("http://localhost:8888/api/v1/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      fileUrl = uploadRes.data?.url;
+      // console.log("message2",fileUrl);
+
+    }
+
+    // ✅ Emit message
+    const newMsg = {
+      senderId: currentUser._id,
+      receiverId: selectedUser._id,
+      content: text,
+      isGroup: false,
+      fileUrl,
+    };
+
+    socket.current.emit("message", newMsg);
   };
-
-  socket.current.emit("message", newMsg);
-};
 
 
   if (loading || !currentUser) return null;
@@ -146,10 +149,10 @@ function Chat() {
     <div style={{ display: "flex", height: "100vh", backgroundColor: "#f5f5f5" }}>
       <div style={{ width: "25%", borderRight: "1px solid #ccc", padding: "1rem" }}>
         <UserInfo user={currentUser} />
-        <ContactList users={users}  onSelectUser={(user) => {
-            setSelectedUser(user);
-            // setMessages([]); // reset messages when changing contact
-          }}
+        <ContactList users={users} onSelectUser={(user) => {
+          setSelectedUser(user);
+          // setMessages([]); // reset messages when changing contact
+        }}
           selectedUserId={selectedUser?._id}
         />
       </div>

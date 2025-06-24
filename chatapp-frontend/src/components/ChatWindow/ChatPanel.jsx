@@ -13,7 +13,7 @@ function ChatPanel({ selectedUser, messages, onSend, currentUserId }) {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', }}>
       {/* Header */}
       <div style={{ flexShrink: 0 }}>
         <ChatHeader selectedUser={selectedUser} />
