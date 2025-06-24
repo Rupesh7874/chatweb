@@ -1,41 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 function MessageInput({ onSend }) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
+  const [file, setFile] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!text.trim()) return;
-    onSend(text); // send message to parent
-    setText('');  // clear input
+
+    if (!text && !file) return;
+
+    const formData = new FormData();
+    formData.append("content", text);
+    if (file) formData.append("usermassage", file);
+
+    onSend(formData); // 👈 send as FormData
+
+    setText("");
+    setFile(null);
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', padding: '1rem', borderTop: '1px solid #ccc' }}>
+    <form onSubmit={handleSubmit} style={{ display: "flex", gap: "8px", padding: "10px" }}>
       <input
         type="text"
+        placeholder="Type a message"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Type a message"
-        style={{
-          flex: 1,
-          padding: '0.5rem',
-          fontSize: '1rem',
-          border: '1px solid #ccc',
-          borderRadius: '8px'
-        }}
+        style={{ flex: 1 }}
       />
-      <button type="submit" style={{
-        marginLeft: '0.5rem',
-        padding: '0.5rem 1rem',
-        fontSize: '1rem',
-        backgroundColor: '#007bff',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '8px'
-      }}>
-        Send
-      </button>
+      <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} />
+      <button type="submit">Send</button>
     </form>
   );
 }

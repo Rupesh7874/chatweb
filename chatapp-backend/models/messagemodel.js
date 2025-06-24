@@ -17,22 +17,12 @@ const messageschema = new mongoose.Schema({
     },
     content: {
         type: String,
-        required: true
+        // required: true
     },
     fileUrl: { type: String },
     timestamp: { type: Date, default: Date.now }
 })
 
-const messagestorage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, path.join(__dirname, '..', 'uploads'));
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + '-' + Date.now())
-    }
-});
-
-const upload = multer({ storage: messagestorage }).single('fileUrl');
 
 const message = mongoose.model('message', messageschema);
 

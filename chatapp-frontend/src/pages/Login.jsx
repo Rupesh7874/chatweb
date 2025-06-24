@@ -16,8 +16,11 @@ function Login() {
         try {
             const res = await API.post('/api/v1/user/userlogin', form);
             localStorage.setItem('token', res.data.token);
+            localStorage.setItem('user', JSON.stringify(res.data.cheakmail)); // ✅ fix here
+
             window.dispatchEvent(new Event("storage"));
-            navigate('/chat'); // ✅ Safe redirect after login
+            navigate('/chat');
+
         } catch (err) {
             console.error(err);
             setError('Login failed. Please check credentials.');

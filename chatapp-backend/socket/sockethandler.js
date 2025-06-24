@@ -39,7 +39,7 @@ module.exports = function (io) {
 
         socket.on('message', async ({ senderId, receiverId, content, isGroup, fileUrl }) => {
             try {
-                // console.log(senderId, receiverId, content, isGroup, fileUrl );
+                // console.log("fileurl",fileUrl);
                 
                 const newMsg = await message.create({
                     sender: senderId,
@@ -48,13 +48,17 @@ module.exports = function (io) {
                     isGroup: isGroup || false,
                     fileUrl
                 });
-
+                console.log("backnewmsg",newMsg);
+                
                 if (isGroup) {
+                    // 🔁 Emit to the entire group room (all joined members)
                     io.to(receiverId).emit('receiveMessage', newMsg);
                 } else {
+                    // 🔁 Emit to both sender and receiver rooms
+                    io.to(senderId).emit('receiveMessage', newMsg);
                     io.to(receiverId).emit('receiveMessage', newMsg);
                 }
-                io.to(receiverId).emit('receiveMessage', newMsg);
+
             } catch (err) {
                 console.error("Error saving message:", err);
                 socket.emit('error', { message: 'Message failed to send' });

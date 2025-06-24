@@ -1,29 +1,50 @@
 import React from 'react';
 
-function MessageList({ messages = [], currentUserId }) {
+function MessageList({ messages, currentUserId }) {
   return (
-    <div style={{ flex: 1, padding: '1rem', overflowY: 'auto' }}>
-      {messages.map((msg, index) => (
-        <div
-          key={index}
-          style={{
-            textAlign: msg.senderId === currentUserId ? 'right' : 'left',
-            marginBottom: '1rem'
-          }}
-        >
+    <div style={{ padding: '1rem' }}>
+      {messages.map((msg, index) => {
+        const isSender = msg.sender === currentUserId || msg.senderId === currentUserId;
+
+        return (
           <div
+            key={index}
             style={{
-              display: 'inline-block',
-              backgroundColor: msg.senderId === currentUserId ? '#dcf8c6' : '#fff',
-              padding: '0.5rem 1rem',
-              borderRadius: '10px',
-              maxWidth: '70%'
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: isSender ? 'flex-end' : 'flex-start',
+              marginBottom: '1rem',
             }}
           >
-            {msg.text}
+            {msg.content && (
+              <div
+                style={{
+                  backgroundColor: isSender ? '#DCF8C6' : '#ffffff',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  maxWidth: '60%',
+                  wordBreak: 'break-word',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                }}
+              >
+                {msg.content}
+              </div>
+            )}
+
+            {msg.fileUrl && (
+              <img
+                src={`http://localhost:8888${msg.fileUrl}`}
+                alt="attachment"
+                style={{
+                  maxWidth: '200px',
+                  borderRadius: '8px',
+                  marginTop: msg.content ? '8px' : 0,
+                }}
+              />
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

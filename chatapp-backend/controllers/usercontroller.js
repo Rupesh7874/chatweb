@@ -212,15 +212,23 @@ exports.getallgroupmember = async (req, res) => {
 }
 
 exports.allusers = async (req, res) => {
-    try {
-        const currentUserId = req.query.userId; // passed from frontend
-        const users = await usermodel.find({ _id: { $ne: currentUserId } });
-        console.log(users);
-        
-        res.status(200).json(users);
+  try {
+    const currentUserId = req.query.userId;
+
+    if (!currentUserId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
     }
-    catch (error) {
-        console.log(err);
-        res.status(500).json({ message: "Failed viewalluser", error: err.message });
-    }
-}
+
+    const users = await usermodel.find({ _id: { $ne: currentUserId } });
+
+
+    res.status(200).json({
+      success: true,
+      message: "Users fetched successfully",
+      data: users, // ✅ Frontend expects `res.data.data`
+    });
+  } catch (error) {
+    console.error("Error in allusers:", error.message);
+    res.status(500).json({ success: false, message: "Failed to fetch users", error: error.message });
+  }
+};

@@ -13,10 +13,25 @@ function ChatPanel({ selectedUser, messages, onSend, currentUserId }) {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <ChatHeader selectedUser={selectedUser} />
-      <MessageList messages={messages} currentUserId={currentUserId} />
-      <MessageInput onSend={onSend} />
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Header */}
+      <div style={{ flexShrink: 0 }}>
+        <ChatHeader selectedUser={selectedUser} />
+      </div>
+
+      {/* Scrollable messages area */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <MessageList
+          messages={messages}
+          currentUserId={currentUserId}
+          selectedUser={selectedUser}
+        />
+      </div>
+
+      {/* Input fixed at bottom */}
+      <div style={{ flexShrink: 0 }}>
+        <MessageInput onSend={onSend} />
+      </div>
     </div>
   );
 }
