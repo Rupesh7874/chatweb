@@ -65,15 +65,18 @@ function MessageList({ messages, currentUserId }) {
                 }}
               >
                 <span>{formatTime(msg.timestamp)}</span>
-                {isSender && msg.status && (
+                {isSender && (
                   <span style={{ marginLeft: '8px' }}>
-                    {msg.status === 'seen'
-                      ? '✓✓ Seen'
-                      : msg.status === 'delivered'
-                      ? '✓✓ Delivered'
-                      : '✓ Sent'}
+                    {msg.status === 'seen' ? (
+                      <span style={{ color: '#4fc3f7' }}>✔✔</span> // Blue for "seen"
+                    ) : msg.status === 'delivered' ? (
+                      <span style={{ color: '#9e9e9e' }}>✔✔</span> // Gray double check for "delivered"
+                    ) : (
+                      <span style={{ color: '#9e9e9e' }}>✔</span> // Gray single check for "sent"
+                    )}
                   </span>
                 )}
+
               </div>
             </div>
           </div>

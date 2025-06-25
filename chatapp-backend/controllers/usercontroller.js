@@ -5,6 +5,8 @@ const { isvalidemail, validpassword } = require('../confige/validation');
 const jwt = require('jsonwebtoken');
 const Group = require('../models/groupmodel');
 const group = require('../models/groupmodel');
+const messagemodel = require('../models/messagemodel');
+
 
 exports.userragister = async (req, res) => {
     try {
@@ -212,23 +214,43 @@ exports.getallgroupmember = async (req, res) => {
 }
 
 exports.allusers = async (req, res) => {
-  try {
-    const currentUserId = req.query.userId;
+    try {
+        const currentUserId = req.query.userId;
 
-    if (!currentUserId) {
-      return res.status(400).json({ success: false, message: "User ID is required" });
+        if (!currentUserId) {
+            return res.status(400).json({ success: false, message: "User ID is required" });
+        }
+
+        const users = await usermodel.find({ _id: { $ne: currentUserId } });
+
+
+        res.status(200).json({
+            success: true,
+            message: "Users fetched successfully",
+            data: users, // ✅ Frontend expects `res.data.data`
+        });
+    } catch (error) {
+        console.error("Error in allusers:", error.message);
+        res.status(500).json({ success: false, message: "Failed to fetch users", error: error.message });
     }
-
-    const users = await usermodel.find({ _id: { $ne: currentUserId } });
-
-
-    res.status(200).json({
-      success: true,
-      message: "Users fetched successfully",
-      data: users, // ✅ Frontend expects `res.data.data`
-    });
-  } catch (error) {
-    console.error("Error in allusers:", error.message);
-    res.status(500).json({ success: false, message: "Failed to fetch users", error: error.message });
-  }
 };
+
+exports.conversation = async (req, res) => {
+    const { user1, user2 } = req.query;
+    if (!user1 || !user2) return res.status(400).json({ message: 'Missing user IDs' });
+
+    try {
+        const messages = await messagemodel.find({
+            $or: [
+                { sender: user1, receiver: user2 },
+                { sender: user2, receiver: user1 },
+            ],
+        }).sort({ timestamp: 1 });
+
+        res.json({ success: true, data: messages });
+    } catch (err) {
+        console.log(err);
+        
+        res.status(500).json({ error: "Failed to load messages" });
+    }
+}

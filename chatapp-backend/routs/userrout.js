@@ -1,6 +1,6 @@
 const express = require('express');
 const routs = express.Router();
-const { userragister, userlogin, allusers, creategroup, request_join, approve_request, getallgroupmember } = require('../controllers/usercontroller');
+const { userragister, userlogin, allusers, creategroup, request_join, approve_request, getallgroupmember, conversation } = require('../controllers/usercontroller');
 const verifyToken = require('../confige/auth');
 const user = require('../models/usermodel');
 
@@ -12,7 +12,8 @@ routs.post('/creategroup', verifyToken, creategroup);
 routs.post('/request_join', verifyToken, request_join);
 routs.post('/approve_request', verifyToken, approve_request);
 routs.get('/getallgroupmember/:id', getallgroupmember);
-routs.get('/allusers',verifyToken, allusers);
+routs.get('/allusers', verifyToken, allusers);
+routs.get('/conversation', verifyToken, conversation);
 
 
 module.exports = routs
