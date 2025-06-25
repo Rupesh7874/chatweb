@@ -11,6 +11,8 @@ const messageModel = require('./models/messagemodel');
 
 dotenv.config();
 conectdb();
+// require('./utils/cronJobs');
+
 app.use(cors());
 
 app.use(express.json());

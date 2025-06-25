@@ -15,7 +15,6 @@ function Chat() {
   const [isTyping, setIsTyping] = useState(false);
   const socket = useRef(null);
 
-  // ✅ Load current user from localStorage
   useEffect(() => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
@@ -33,7 +32,6 @@ function Chat() {
     setLoading(false);
   }, []);
 
-  // ✅ Connect to socket
   useEffect(() => {
     if (!currentUser?._id) return;
     const token = localStorage.getItem("token");
@@ -56,6 +54,7 @@ function Chat() {
       }
     };
 
+
     const handleTyping = ({ from, typing }) => {
       if (selectedUser && from === selectedUser._id) {
         setIsTyping(typing);
@@ -64,22 +63,9 @@ function Chat() {
 
     socket.current.on("receiveMessage", handleReceiveMessage);
     socket.current.on("typing", handleTyping);
-
-    // ✅ Handle 'seen' updates
     socket.current.on("messageSeenConfirmation", ({ messageId }) => {
       setMessages((prevMessages) =>
-        prevMessages.map((msg) =>
-          msg._id === messageId ? { ...msg, status: "seen" } : msg
-        )
-      );
-    });
-
-    // ✅ Handle 'delivered' updates
-    socket.current.on("messageDeliveredConfirmation", ({ messageId }) => {
-      setMessages((prevMessages) =>
-        prevMessages.map((msg) =>
-          msg._id === messageId ? { ...msg, status: "delivered" } : msg
-        )
+        prevMessages.map((msg) => (msg._id === messageId ? { ...msg, status: "seen" } : msg))
       );
     });
 
@@ -87,13 +73,12 @@ function Chat() {
       socket.current.off("receiveMessage", handleReceiveMessage);
       socket.current.off("typing", handleTyping);
       socket.current.off("messageSeenConfirmation");
-      socket.current.off("messageDeliveredConfirmation");
       socket.current.disconnect();
       socket.current = null;
     };
   }, [currentUser?._id, selectedUser]);
 
-  // ✅ Load messages between current user and selected user
+  // ✅ Load chat history
   useEffect(() => {
     const fetchConversation = async () => {
       if (!selectedUser || !currentUser) return;
@@ -117,25 +102,24 @@ function Chat() {
     fetchConversation();
   }, [selectedUser?._id, selectedUser, currentUser?._id, currentUser]);
 
-  // ✅ Emit seen when viewing unread messages
+
+
+
+  // ✅ Emit seen
   useEffect(() => {
     if (!socket.current || !selectedUser || !messages.length || !currentUser?._id) return;
     const unseenMessages = messages.filter(
-      (msg) =>
-        msg.sender === selectedUser._id &&
-        msg.receiver === currentUser._id &&
-        msg.status !== "seen"
+      (msg) => msg.sender === selectedUser._id && msg.receiver === currentUser._id && msg.status !== "seen"
     );
     unseenMessages.forEach((msg) => {
       socket.current.emit("messageSeen", {
         messageId: msg._id,
         receiverId: currentUser._id,
       });
-      console.log(msg._id);
     });
   }, [selectedUser, messages, currentUser?._id]);
 
-  // ✅ Load user contact list
+  // ✅ Load users
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!currentUser?._id || !token) return;
@@ -158,7 +142,6 @@ function Chat() {
       });
   }, [currentUser]);
 
-  // ✅ Send new message
   const handleSend = async (formData) => {
     const text = formData.get("content");
     const file = formData.get("usermassage");
@@ -192,7 +175,7 @@ function Chat() {
           users={users}
           onSelectUser={(user) => {
             setSelectedUser(user);
-            setMessages([]); // clear old messages
+            setMessages([]); // ✅ clear old messages
           }}
           selectedUserId={selectedUser?._id}
         />

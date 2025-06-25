@@ -1,8 +1,11 @@
 const usermodel = require('../models/usermodel');
+const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcrypt');
 const code = require('../utils/statuscodemessage');
 const { isvalidemail, validpassword } = require('../confige/validation');
 const jwt = require('jsonwebtoken');
+const cron = require("node-cron");
 const Group = require('../models/groupmodel');
 const group = require('../models/groupmodel');
 const messagemodel = require('../models/messagemodel');
@@ -250,7 +253,76 @@ exports.conversation = async (req, res) => {
         res.json({ success: true, data: messages });
     } catch (err) {
         console.log(err);
-        
         res.status(500).json({ error: "Failed to load messages" });
+    }
+}
+
+exports.userupdate = async (req, res) => {
+    try {
+        const { name, email, password, confirmpassword, age, gender } = req.body;
+        const { id } = req.params
+        const cheakmail = await usermodel.findById(id);
+
+        if (!cheakmail) {
+            return res.status(400).json({ msg: "user not found", status: 0 })
+        }
+        if (!name) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "name is require" })
+        }
+        if (!email) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "email is require" })
+        }
+        if (!isvalidemail(email)) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "invalid email" })
+        }
+        if (!password) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "password is require" })
+        }
+        if (!confirmpassword) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "confirmpassword is require" })
+        }
+        if (!validpassword(password)) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "minimum password length is 5" })
+        }
+        if (password !== confirmpassword) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "password and confirmpassword are not same" })
+        }
+        if (!age) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "age is require" })
+        }
+        if (!gender) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "gender is require" })
+        }
+        let oldimgpath = cheakmail.profileimage;
+        let newimgpath = "";
+
+        if (req.file) {
+            // Delete old image if exists
+            if (cheakmail.profileimage) {
+                const oldpath = path.join(__dirname, '..', cheakmail.profileimage);
+                if (fs.existsSync(oldpath)) {
+                    fs.unlinkSync(oldpath);
+                }
+            }
+            newimgpath = usermodel.useruploadpth + '/' + req.file.filename;
+        }
+
+        const hashpass = await bcrypt.hash(password, 10);
+        const updateuser = {
+            name,
+            email,
+            password: hashpass,
+            age,
+            gender,
+            profileimage: req.file ? newimgpath : oldimgpath
+        }
+        const newuser = await usermodel.findByIdAndUpdate(id, updateuser, { new: true });
+        if (!newuser) {
+            res.status(400).json({ msg: "user not update", status: 0 })
+        }
+        return res.status(code.OK).json({ sucess: true, message: "user update with image sucessfully", newuser: newuser })
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: "server error" });
     }
 }
