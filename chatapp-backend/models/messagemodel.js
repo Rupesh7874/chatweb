@@ -19,6 +19,10 @@ const messageschema = new mongoose.Schema({
         type: String,
         // required: true
     },
+    isGroup: {
+        type: Boolean,
+        default: false,
+    },
     status: {
         type: String,
         enum: ['sent', 'delivered', 'seen'],

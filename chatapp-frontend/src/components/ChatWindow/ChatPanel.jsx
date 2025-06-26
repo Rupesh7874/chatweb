@@ -3,8 +3,18 @@ import ChatHeader from './ChatHeader';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 
-function ChatPanel({ selectedUser, messages, onSend, currentUserId, onTyping, isTyping }) {
-  if (!selectedUser) {
+function ChatPanel({
+  selectedUser,
+  selectedGroup,
+  messages,
+  onSend,
+  currentUserId,
+  onTyping,
+  isTyping
+}) {
+  const activeChat = selectedUser || selectedGroup;
+
+  if (!activeChat) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <h2>Select a contact to start chatting</h2>
@@ -24,7 +34,7 @@ function ChatPanel({ selectedUser, messages, onSend, currentUserId, onTyping, is
     >
       {/* Header */}
       <div style={{ flexShrink: 0 }}>
-        <ChatHeader selectedUser={selectedUser} />
+        <ChatHeader selectedUser={selectedUser} selectedGroup={selectedGroup} />
       </div>
 
       {/* Message List */}
@@ -33,10 +43,11 @@ function ChatPanel({ selectedUser, messages, onSend, currentUserId, onTyping, is
           messages={messages}
           currentUserId={currentUserId}
           selectedUser={selectedUser}
+          selectedGroup={selectedGroup}
         />
 
         {/* Typing indicator */}
-        {isTyping && (
+        {isTyping && selectedUser && (
           <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '10px' }}>
             {selectedUser.name} is typing...
           </div>

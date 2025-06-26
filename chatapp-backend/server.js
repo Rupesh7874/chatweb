@@ -47,6 +47,10 @@ app.use('/api/v1', api1router);
 const uploadRoute = require('./routs/upload');
 app.use('/api/v1/upload', uploadRoute);
 
+const groupRoutes = require('./routs/grouproute');
+app.use('/api/v1/group', groupRoutes); 
+
+
 // app.use('/api', uploadRoute);
 
 const PORT = process.env.PORT || 8000;

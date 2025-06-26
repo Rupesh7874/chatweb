@@ -6,6 +6,8 @@ function MessageList({ messages, currentUserId }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  useEffect(() => {
+  }, [messages]);
 
   const formatTime = (isoString) => {
     const date = new Date(isoString);
@@ -15,7 +17,16 @@ function MessageList({ messages, currentUserId }) {
   return (
     <div style={{ padding: '1rem' }}>
       {messages.map((msg, index) => {
-        const isSender = msg.sender === currentUserId || msg.senderId === currentUserId;
+        const senderId = msg.sender && typeof msg.sender === 'object'
+          ? String(msg.sender._id)
+          : String(msg.sender);
+
+        const isSender = senderId === String(currentUserId);
+        const time = msg.timestamp || msg.createdAt || '';
+        const senderName =
+          !isSender && typeof msg.sender === 'object'
+            ? msg.sender.name
+            : '';
 
         return (
           <div
@@ -29,7 +40,7 @@ function MessageList({ messages, currentUserId }) {
           >
             <div
               style={{
-                backgroundColor: isSender ? '#DCF8C6' : '#ffffff',
+                backgroundColor: isSender ? '#DCF8C6' : '#F1F0F0',
                 padding: '10px 14px',
                 borderRadius: '10px',
                 maxWidth: '60%',
@@ -38,6 +49,13 @@ function MessageList({ messages, currentUserId }) {
                 position: 'relative',
               }}
             >
+              {/* Sender Name (for received group messages) */}
+              {senderName && (
+                <div style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '4px' }}>
+                  {senderName}
+                </div>
+              )}
+
               {/* Message Text */}
               {msg.content && <div>{msg.content}</div>}
 
@@ -54,7 +72,7 @@ function MessageList({ messages, currentUserId }) {
                 />
               )}
 
-              {/* Timestamp + Status */}
+              {/* Timestamp & Status */}
               <div
                 style={{
                   display: 'flex',
@@ -64,24 +82,25 @@ function MessageList({ messages, currentUserId }) {
                   marginTop: '4px',
                 }}
               >
-                <span>{formatTime(msg.timestamp)}</span>
+                <span>{time ? formatTime(time) : ''}</span>
+
                 {isSender && (
                   <span style={{ marginLeft: '8px' }}>
                     {msg.status === 'seen' ? (
-                      <span style={{ color: '#4fc3f7' }}>✔✔</span> // Blue for "seen"
+                      <span style={{ color: '#4fc3f7' }}>✔✔</span>
                     ) : msg.status === 'delivered' ? (
-                      <span style={{ color: '#9e9e9e' }}>✔✔</span> // Gray double check for "delivered"
+                      <span style={{ color: '#9e9e9e' }}>✔✔</span>
                     ) : (
-                      <span style={{ color: '#9e9e9e' }}>✔</span> // Gray single check for "sent"
+                      <span style={{ color: '#9e9e9e' }}>✔</span>
                     )}
                   </span>
                 )}
-
               </div>
             </div>
           </div>
         );
       })}
+
       <div ref={bottomRef} />
     </div>
   );

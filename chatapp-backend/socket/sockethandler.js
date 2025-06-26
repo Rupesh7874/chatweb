@@ -35,15 +35,17 @@ module.exports = function (io) {
           content,
           isGroup: isGroup || false,
           fileUrl,
-          status: 'sent'
+          status: 'sent',
         });
 
+        const plainMsg = newMsg.toObject();
         if (isGroup) {
-          io.to(receiverId).emit('receiveMessage', newMsg);
+          io.to(receiverId).emit('receiveMessage', plainMsg);
         } else {
-          io.to(senderId).emit('receiveMessage', newMsg);
-          io.to(receiverId).emit('receiveMessage', newMsg);
+          io.to(senderId).emit('receiveMessage', plainMsg);
+          io.to(receiverId).emit('receiveMessage', plainMsg);
         }
+
       } catch (err) {
         console.error("❌ Error saving message:", err);
         socket.emit('error', { message: 'Message failed to send' });
