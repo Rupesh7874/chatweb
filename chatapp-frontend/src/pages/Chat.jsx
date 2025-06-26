@@ -76,15 +76,29 @@ function Chat() {
       }
     };
 
-    const handleTyping = ({ from, typing }) => {
-      const selected = selectedUserRef.current;
-      if (selected && from === selected._id) {
-        setIsTyping(typing);
+    const handleTyping = ({ from, typing, isGroup, to }) => {
+      if (!isGroup) {
+        const selected = selectedUserRef.current;
+        if (selected && from === selected._id) {
+          setIsTyping(typing);
+        }
+      } else {
+        const selectedGroup = selectedGroupRef.current;
+        if (selectedGroup && to === selectedGroup._id) {
+          // ✅ Get typing user data
+          const typingUser = users.find(u => u._id === from);
+          if (typing) {
+            setIsTyping({ name: typingUser?.name || "Someone" });
+          } else {
+            setIsTyping(null);
+          }
+        }
       }
     };
 
     socket.current.on("receiveMessage", handleReceiveMessage);
     socket.current.on("typing", handleTyping);
+
     socket.current.on("messageSeenConfirmation", ({ messageId }) => {
       setMessages((prev) =>
         prev.map((msg) =>
@@ -176,7 +190,6 @@ function Chat() {
             },
           }
         );
-        
         setMessages(res.data?.data || []);
       } catch (err) {
         console.error("❌ Failed to fetch group messages:", err);
@@ -203,6 +216,27 @@ function Chat() {
       });
     });
   }, [selectedUser, messages, currentUser?._id]);
+
+  useEffect(() => {
+    if (!socket.current || !selectedGroup || !messages.length || !currentUser?._id) return;
+
+    const timer = setTimeout(() => {
+      const unseenMessages = messages.filter(
+        (msg) =>
+          msg.sender !== currentUser._id &&
+          msg.status !== "seen"
+      );
+
+      unseenMessages.forEach((msg) => {
+        socket.current.emit("messageSeen", {
+          messageId: msg._id,
+          receiverId: currentUser._id,
+        });
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [selectedGroup, messages, currentUser?._id]);
 
   const handleSend = async (formData) => {
     const text = formData.get("content");
@@ -267,11 +301,21 @@ function Chat() {
         currentUserId={currentUser._id}
         isTyping={isTyping}
         onTyping={(typing) => {
-          if (!selectedUser || !socket.current) return;
-          socket.current.emit("typing", {
-            to: selectedUser._id,
-            typing,
-          });
+          if (socket.current) {
+            if (selectedUser) {
+              socket.current.emit("typing", {
+                to: selectedUser._id,
+                typing,
+                isGroup: false,
+              });
+            } else if (selectedGroup) {
+              socket.current.emit("typing", {
+                to: selectedGroup._id,
+                typing,
+                isGroup: true,
+              });
+            }
+          }
         }}
       />
     </div>

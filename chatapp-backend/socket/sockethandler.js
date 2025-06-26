@@ -53,12 +53,23 @@ module.exports = function (io) {
     });
 
     // ✅ Typing
-    socket.on("typing", ({ to, typing }) => {
-      socket.to(to).emit("typing", {
-        from: socket.userId,
-        typing,
-      });
+    socket.on("typing", ({ to, typing, isGroup }) => {
+      if (isGroup) {
+        socket.to(to).emit("typing", {
+          from: socket.userId,
+          typing,
+          isGroup: true,
+          to,
+        });
+      } else {
+        socket.to(to).emit("typing", {
+          from: socket.userId,
+          typing,
+          isGroup: false,
+        });
+      }
     });
+
 
     // ✅ Delivered Status
     socket.on('messageDelivered', async ({ messageId, receiverId }) => {
@@ -84,7 +95,7 @@ module.exports = function (io) {
       try {
         const msg = await message.findById(messageId);
 
-        if (msg && msg.receiver.toString() === receiverId && msg.status !== "seen") {
+        if (msg && msg.status !== "seen") {
           await message.findByIdAndUpdate(messageId, { status: "seen" });
 
           const senderId = msg.sender.toString();
@@ -93,10 +104,13 @@ module.exports = function (io) {
             seenBy: receiverId,
           });
         }
+
       } catch (err) {
         console.error("❌ Error updating message to seen:", err.message);
       }
     });
+
+
 
     socket.on('disconnecting', () => {
       console.log(`User disconnected: ${socket.userId}`);

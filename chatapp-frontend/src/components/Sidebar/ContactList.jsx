@@ -20,8 +20,8 @@ function ContactList({ users = [], groups = [], onSelectUser, onSelectGroup, sel
                 marginBottom: '4px',
               }}
             >
-              <strong>{group.name}</strong><br />
-              <small>Group</small>
+              <strong>{group.groupname}</strong><br />
+              {/* <small>Group</small> */}
             </div>
           );
         })

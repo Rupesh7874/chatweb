@@ -47,11 +47,17 @@ function ChatPanel({
         />
 
         {/* Typing indicator */}
-        {isTyping && selectedUser && (
+        {/* Typing indicator */}
+        {isTyping && (
           <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '10px' }}>
-            {selectedUser.name} is typing...
+            {selectedUser
+              ? `${selectedUser.name} is typing...`
+              : selectedGroup
+                ? `someone is typing in ${selectedGroup.groupname}...`
+                : null}
           </div>
         )}
+
       </div>
 
       {/* Input Box */}
