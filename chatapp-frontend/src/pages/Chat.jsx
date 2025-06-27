@@ -20,6 +20,21 @@ function Chat() {
   const selectedUserRef = useRef(null);
   const selectedGroupRef = useRef(null);
 
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    try {
+      await axios.delete(`http://localhost:8888/api/v1/user/userdelete?userId=${userId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      setUsers((prev) => prev.filter((u) => u._id !== userId));
+    } catch (err) {
+      alert("Failed to delete user");
+      console.error("Delete error:", err);
+    }
+  };
+
   useEffect(() => {
     selectedUserRef.current = selectedUser;
   }, [selectedUser]);
@@ -108,7 +123,7 @@ function Chat() {
       socket.current.disconnect();
       socket.current = null;
     };
-  }, [currentUser?._id]);
+  }, [currentUser?._id, users]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -168,7 +183,7 @@ function Chat() {
     };
 
     fetchConversation();
-  }, [selectedUser?._id, currentUser?._id]);
+  }, [selectedUser?._id, currentUser?._id, selectedUser, currentUser]);
 
   useEffect(() => {
     const fetchGroupMessages = async () => {
@@ -190,7 +205,7 @@ function Chat() {
     };
 
     fetchGroupMessages();
-  }, [selectedGroup?._id, currentUser?._id]);
+  }, [selectedGroup?._id, currentUser?._id, selectedGroup, currentUser]);
 
   useEffect(() => {
     if (!socket.current || !selectedUser || !messages.length || !currentUser?._id) return;
@@ -270,6 +285,7 @@ function Chat() {
           groups={groups}
           selectedUserId={selectedUser?._id}
           selectedGroupId={selectedGroup?._id}
+          onDeleteUser={handleDeleteUser}
           onSelectUser={(user) => {
             setSelectedUser(user);
             setSelectedGroup(null);

@@ -17,6 +17,7 @@ const avatarStyle = {
 const cardBase = {
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'space-between',
   padding: '0.75rem',
   borderRadius: '12px',
   marginBottom: '0.75rem',
@@ -24,7 +25,22 @@ const cardBase = {
   transition: 'all 0.2s ease-in-out',
 };
 
-function ContactList({ users = [], groups = [], onSelectUser, onSelectGroup, selectedUserId, selectedGroupId }) {
+const textWrapper = {
+  flex: 1,
+  marginLeft: 10,
+  overflow: 'hidden',
+};
+
+const deleteBtnStyle = {
+  marginLeft: 10,
+  background: 'transparent',
+  border: 'none',
+  color: '#ff4d4f',
+  fontSize: '1rem',
+  cursor: 'pointer',
+};
+
+function ContactList({ users = [], groups = [], onSelectUser, onSelectGroup, selectedUserId, selectedGroupId, onDeleteUser }) {
   return (
     <div style={{ padding: '1rem', overflowY: 'auto', maxHeight: '100vh' }}>
       {/* Groups */}
@@ -43,12 +59,11 @@ function ContactList({ users = [], groups = [], onSelectUser, onSelectGroup, sel
                 backgroundColor: isSelected ? '#f9f0ff' : '#fafafa',
                 border: '2px solid',
                 borderColor: isSelected ? '#722ed1' : 'transparent',
-
                 boxShadow: isSelected ? '0 0 8px rgba(114, 46, 209, 0.2)' : 'none',
               }}
             >
               <div style={avatarStyle}>{group.groupname.charAt(0).toUpperCase()}</div>
-              <div>
+              <div style={textWrapper}>
                 <strong style={{ color: '#222' }}>{group.groupname}</strong><br />
                 <small style={{ color: '#888' }}>Group Chat</small>
               </div>
@@ -67,21 +82,27 @@ function ContactList({ users = [], groups = [], onSelectUser, onSelectGroup, sel
           return (
             <div
               key={user._id}
-              onClick={() => onSelectUser(user)}
               style={{
                 ...cardBase,
                 backgroundColor: isSelected ? '#e6f7ff' : '#fafafa',
                 border: '2px solid',
                 borderColor: isSelected ? '#722ed1' : 'transparent',
-
                 boxShadow: isSelected ? '0 0 8px rgba(24, 144, 255, 0.2)' : 'none',
               }}
             >
-              <div style={avatarStyle}>{user.name.charAt(0).toUpperCase()}</div>
-              <div>
-                <strong style={{ color: '#222' }}>{user.name}</strong><br />
-                <small style={{ color: '#888' }}>{user.email}</small>
+              <div
+                onClick={() => onSelectUser(user)}
+                style={{ display: 'flex', alignItems: 'center', flex: 1 }}
+              >
+                <div style={avatarStyle}>{user.name.charAt(0).toUpperCase()}</div>
+                <div style={textWrapper}>
+                  <strong style={{ color: '#222' }}>{user.name}</strong><br />
+                  <small style={{ color: '#888' }}>{user.email}</small>
+                </div>
               </div>
+              {onDeleteUser && (
+                <button onClick={() => onDeleteUser(user._id)} title="Delete user" style={deleteBtnStyle} >🗑️</button>
+              )}
             </div>
           );
         })

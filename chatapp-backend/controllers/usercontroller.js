@@ -9,6 +9,8 @@ const cron = require("node-cron");
 const Group = require('../models/groupmodel');
 const group = require('../models/groupmodel');
 const messagemodel = require('../models/messagemodel');
+const sendmail = require('../confige/sendmail');
+const otpModel = require('../models/otpModel');
 
 
 exports.userragister = async (req, res) => {
@@ -194,7 +196,7 @@ exports.approve_request = async (req, res) => {
         res.status(200).json({ message: "User added to group successfully" });
     } catch (err) {
         console.log(err);
-       return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
+        return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
     }
 }
 
@@ -222,7 +224,7 @@ exports.allusers = async (req, res) => {
             return res.status(400).json({ success: false, message: "User ID is required" });
         }
 
-        const users = await usermodel.find({ _id: { $ne: currentUserId } });
+        const users = await usermodel.find({ _id: { $ne: currentUserId } }).select("-password")
 
 
         res.status(200).json({
@@ -322,5 +324,99 @@ exports.userupdate = async (req, res) => {
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: "server error" });
+    }
+}
+
+exports.userdelete = async (req, res) => {
+    try {
+        const id = req.query.userId;
+        if (!id) {
+            return res.status(code.NOT_FOUND).json({ sucess: false, message: "userId is required" });
+        }
+        const deleteuser = await usermodel.findByIdAndDelete(id, { new: true });
+        if (!deleteuser) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "user not delete" });
+        }
+        return res.status(code.OK).json({ sucess: true, status: code.OK, message: "user delete sucessfully", deleteuser: deleteuser });
+
+    } catch (error) {
+        return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
+    }
+}
+
+exports.forgatepassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "email is required" });
+        }
+        const checkmail = await usermodel.findOne({ email }).select("-password");
+
+        if (!checkmail) {
+            return res.status(code.NOT_FOUND).json({ sucess: false, status: code.NOT_FOUND, message: "user not found" });
+        }
+        const OTP = Math.floor(Math.random() * 900000) + 100000;
+        console.log(OTP);
+
+        const expire = Date.now() + 5 * 60 * 100;
+        await otpModel.deleteMany({ email });
+
+        await otpModel.create({ email, otp: OTP, expire });
+
+        sendmail(
+            email,
+            "otp valid for 5 minit",
+            `otp ${OTP} for password`
+        )
+        console.log("otp send sucessfully on email");
+        return res.status(code.OK).json({ sucess: true, status: code.OK, message: "otp send sucessfully on email" })
+    } catch (error) {
+        console.log(error);
+        return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
+    }
+}
+
+exports.resetpassword = async (req, res) => {
+    try {
+        const { email, otp, newpassword, confirmpassword } = req.body;
+        if (!email) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "email is required" })
+        }
+        if (!otp) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "otp is required" })
+        }
+        if (!newpassword) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "newpassword is required" })
+        }
+        if (!confirmpassword) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "confirmpassword is required" })
+        }
+        if (password !== confirmpassword) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "password and confirmpassword are not same" })
+        }
+        const cheakmail = await usermodel.findOne({ email }).select("-password");
+        if (!cheakmail) {
+            return res.status(code.NOT_FOUND).json({ sucess: false, status: code.NOT_FOUND, message: "user not found" })
+        }
+        const otpdata = await otpModel.findOne({ email });
+        if (!otpdata) {
+            return res.status(code.NOT_FOUND).json({ sucess: false, status: code.NOT_FOUND, message: "email not found" })
+        }
+        if (otpdata.otp !== otp) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "INVALID OTP" })
+        }
+        if (otpdata.expire < new Date()) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "OTP EXPIRE" })
+        }
+        const hashedpass = await bcrypt.hash(password, 10);
+        const updatepass = await usermodel.findByIdAndUpdate({ email }, { password: hashedpass }, { new: true });
+        if (!updatepass) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "new password not set" })
+        }
+        return res.status(code.OK).json({ sucess: false, status: code.OK, message: "new password set sucessfully" })
+    } catch (error) {
+        console.log(error);
+        return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
     }
 }
