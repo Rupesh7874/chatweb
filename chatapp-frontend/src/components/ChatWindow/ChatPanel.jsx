@@ -10,14 +10,24 @@ function ChatPanel({
   onSend,
   currentUserId,
   onTyping,
-  isTyping
+  isTyping,
 }) {
   const activeChat = selectedUser || selectedGroup;
 
   if (!activeChat) {
     return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <h2>Select a contact to start chatting</h2>
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f0f2f5',
+          borderRadius: '12px',
+          margin: '1rem',
+        }}
+      >
+        <h2 style={{ color: '#555' }}>Select a contact or group to start chatting</h2>
       </div>
     );
   }
@@ -28,7 +38,11 @@ function ChatPanel({
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        height: '100%',
+        height: '95%',
+        backgroundColor: '#fff',
+        borderRadius: '12px',
+        margin: '1rem',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
         overflow: 'hidden',
       }}
     >
@@ -38,30 +52,39 @@ function ChatPanel({
       </div>
 
       {/* Message List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 1rem' }}>
-        <MessageList
-          messages={messages}
-          currentUserId={currentUserId}
-          selectedUser={selectedUser}
-          selectedGroup={selectedGroup}
-        />
+      {/* Message List Wrapper */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '1rem',
+            backgroundColor: '#f9f9f9',
+          }}
+        >
+          <MessageList
+            messages={messages}
+            currentUserId={currentUserId}
+            selectedUser={selectedUser}
+            selectedGroup={selectedGroup}
+          />
 
-        {/* Typing indicator */}
-        {/* Typing indicator */}
-        {isTyping && (
-          <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '10px' }}>
-            {selectedUser
-              ? `${selectedUser.name} is typing...`
-              : selectedGroup
-                ? `someone is typing in ${selectedGroup.groupname}...`
-                : null}
-          </div>
-        )}
-
+          {/* Typing indicator */}
+          {isTyping && (
+            <div style={{ fontSize: '0.85rem', color: '#888', marginTop: '0.5rem' }}>
+              {selectedUser
+                ? `${selectedUser.name} is typing...`
+                : selectedGroup
+                  ? `Someone is typing in ${selectedGroup.groupname}...`
+                  : null}
+            </div>
+          )}
+        </div>
       </div>
 
+
       {/* Input Box */}
-      <div style={{ flexShrink: 0 }}>
+      <div style={{ flexShrink: 0, padding: '0.75rem', borderTop: '1px solid #eee' }}>
         <MessageInput onSend={onSend} onTyping={onTyping} />
       </div>
     </div>

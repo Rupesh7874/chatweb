@@ -65,7 +65,7 @@ exports.userragister = async (req, res) => {
                 return res.status(code.CREATED).json({ sucess: true, message: "user create with image sucessfully", Userdata: Userdata })
             }
             else {
-                return res.status(400).json({ msg: "user not create with image", status: 0 })
+                return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "server error" })
             }
         }
         else {
@@ -83,11 +83,9 @@ exports.userragister = async (req, res) => {
                 return res.status(code.CREATED).json({ sucess: true, message: "user create sucessfully", Userdata: Userdata })
             }
             else {
-                return res.status(400).json({ msg: "user not ragister", status: 0 })
+                return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "server error" })
             }
         }
-
-
     } catch (error) {
         console.log(error);
         return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
@@ -196,7 +194,7 @@ exports.approve_request = async (req, res) => {
         res.status(200).json({ message: "User added to group successfully" });
     } catch (err) {
         console.log(err);
-        res.status(500).json({ message: "Failed to approve join request", error: err.message });
+       return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
     }
 }
 

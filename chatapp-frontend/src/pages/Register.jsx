@@ -25,13 +25,12 @@ function Register() {
       setError('Passwords do not match');
       return;
     }
-
     try {
       await API.post('/api/v1/user/userragister', form);
       navigate('/login');
     } catch (err) {
-      console.error(err);
-      setError('Registration failed. Try again.');
+      console.error("Registration error:", err.response?.data || err.message);
+      setError(err.response?.data?.message || 'Registration failed. Try again.');
     }
   };
 
@@ -84,7 +83,7 @@ function Register() {
             onChange={handleChange}
             required
           />
-          <select name="gender" value={form.gender} onChange={handleChange} required>
+          <select className='tt'  name="gender" value={form.gender} onChange={handleChange} required>
             <option value="">⚧️ Select Gender</option>
             <option value="male">♂️ Male</option>
             <option value="female">♀️ Female</option>

@@ -4,6 +4,7 @@ import axios from "axios";
 import UserInfo from "../components/Sidebar/UserInfo";
 import ContactList from "../components/Sidebar/ContactList";
 import ChatPanel from "../components/ChatWindow/ChatPanel";
+import LogoutButton from "../components/Sidebar/LogoutButton";
 
 function Chat() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -62,8 +63,6 @@ function Chat() {
       if (msg.isGroup) {
         if (msg.receiver === selectedGroupRef.current?._id) {
           setMessages((prev) => [...prev, msg]);
-        } else {
-          console.log("❌ Group mismatch — message ignored");
         }
       } else {
         const selected = selectedUserRef.current;
@@ -85,13 +84,8 @@ function Chat() {
       } else {
         const selectedGroup = selectedGroupRef.current;
         if (selectedGroup && to === selectedGroup._id) {
-          // ✅ Get typing user data
-          const typingUser = users.find(u => u._id === from);
-          if (typing) {
-            setIsTyping({ name: typingUser?.name || "Someone" });
-          } else {
-            setIsTyping(null);
-          }
+          const typingUser = users.find((u) => u._id === from);
+          setIsTyping(typing ? { name: typingUser?.name || "Someone" } : null);
         }
       }
     };
@@ -126,8 +120,7 @@ function Chat() {
       })
       .then((res) => {
         const usersList = Array.isArray(res.data?.data) ? res.data.data : [];
-        const filtered = usersList.filter((u) => u._id !== currentUser._id);
-        setUsers(filtered);
+        setUsers(usersList.filter((u) => u._id !== currentUser._id));
       })
       .catch((err) => {
         if (err.response?.status === 401) {
@@ -268,9 +261,10 @@ function Chat() {
   if (loading || !currentUser) return null;
 
   return (
-    <div style={{ display: "flex", height: "100vh", backgroundColor: "#f5f5f5" }}>
+    <div style={{ display: "flex", height: "100vh", backgroundColor: "#f5f5f5", overflow: "hidden" }}>
       <div style={{ width: "25%", borderRight: "1px solid #ccc", padding: "1rem" }}>
         <UserInfo user={currentUser} />
+        <LogoutButton />
         <ContactList
           users={users}
           groups={groups}
