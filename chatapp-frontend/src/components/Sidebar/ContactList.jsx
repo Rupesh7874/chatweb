@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const avatarStyle = {
   width: 36,
@@ -23,6 +23,7 @@ const cardBase = {
   marginBottom: '0.75rem',
   cursor: 'pointer',
   transition: 'all 0.2s ease-in-out',
+  position: 'relative',
 };
 
 const textWrapper = {
@@ -31,13 +32,33 @@ const textWrapper = {
   overflow: 'hidden',
 };
 
-const deleteBtnStyle = {
+const menuBtn = {
   marginLeft: 10,
   background: 'transparent',
   border: 'none',
-  color: '#ff4d4f',
-  fontSize: '1rem',
+  color: '#333',
+  fontSize: '1.2rem',
   cursor: 'pointer',
+};
+
+const dropdownMenuStyle = {
+  position: 'absolute',
+  top: '100%',
+  right: 10,
+  backgroundColor: '#fff',
+  border: '1px solid #ddd',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+  borderRadius: 6,
+  zIndex: 100,
+  width: 120,
+};
+
+const menuItemStyle = {
+  padding: '8px 12px',
+  cursor: 'pointer',
+  fontSize: '0.9rem',
+  color: '#333',
+  borderBottom: '1px solid #eee',
 };
 
 function ContactList({
@@ -47,14 +68,59 @@ function ContactList({
   onSelectGroup,
   selectedUserId,
   selectedGroupId,
-  onDeleteUser
+  onDeleteUser,
+  onDeleteGroup, // ✅ New prop
 }) {
+  const [openMenuUserId, setOpenMenuUserId] = useState(null);
+  const [openMenuGroupId, setOpenMenuGroupId] = useState(null);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuUserId(null);
+        setOpenMenuGroupId(null);
+      }
+    };
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const toggleMenuUser = (e, userId) => {
+    e.stopPropagation();
+    setOpenMenuUserId(prev => (prev === userId ? null : userId));
+  };
+
+  const toggleMenuGroup = (e, groupId) => {
+    e.stopPropagation();
+    setOpenMenuGroupId(prev => (prev === groupId ? null : groupId));
+  };
+
+  const handleDeleteGroup = (groupId) => {
+    if (window.confirm("Are you sure you want to delete this group?")) {
+      onDeleteGroup(groupId);
+    }
+    setOpenMenuGroupId(null);
+  };
+
+  const handleUpdateUser = (userId) => {
+    alert(`Update user ${userId}`);
+    setOpenMenuUserId(null);
+  };
+
+  const handleDeleteUser = (userId) => {
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      onDeleteUser(userId);
+    }
+    setOpenMenuUserId(null);
+  };
+
   return (
     <div
       style={{
         padding: '1rem',
         overflowY: 'auto',
-        maxHeight: 'calc(100vh - 100px)', // adjust height based on your layout
+        maxHeight: 'calc(100vh - 100px)',
         scrollbarWidth: 'thin',
       }}
     >
@@ -77,13 +143,35 @@ function ContactList({
                 boxShadow: isSelected ? '0 0 8px rgba(114, 46, 209, 0.2)' : 'none',
               }}
             >
-              <div style={avatarStyle}>
-                {group.groupname.charAt(0).toUpperCase()}
+              <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                <div style={avatarStyle}>
+                  {group.groupname.charAt(0).toUpperCase()}
+                </div>
+                <div style={textWrapper}>
+                  <strong style={{ color: '#222' }}>{group.groupname}</strong>
+                  <br />
+                  <small style={{ color: '#888' }}>Group Chat</small>
+                </div>
               </div>
-              <div style={textWrapper}>
-                <strong style={{ color: '#222' }}>{group.groupname}</strong><br />
-                <small style={{ color: '#888' }}>Group Chat</small>
-              </div>
+
+              <button
+                onClick={(e) => toggleMenuGroup(e, group._id)}
+                style={menuBtn}
+                title="Options"
+              >
+                ⋮
+              </button>
+
+              {openMenuGroupId === group._id && (
+                <div ref={menuRef} style={dropdownMenuStyle}>
+                  <div
+                    style={{ ...menuItemStyle, color: '#ff4d4f', borderBottom: 'none' }}
+                    onClick={() => handleDeleteGroup(group._id)}
+                  >
+                     Delete
+                  </div>
+                </div>
+              )}
             </div>
           );
         })
@@ -115,18 +203,35 @@ function ContactList({
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div style={textWrapper}>
-                  <strong style={{ color: '#222' }}>{user.name}</strong><br />
+                  <strong style={{ color: '#222' }}>{user.name}</strong>
+                  <br />
                   <small style={{ color: '#888' }}>{user.email}</small>
                 </div>
               </div>
-              {onDeleteUser && (
-                <button
-                  onClick={() => onDeleteUser(user._id)}
-                  title="Delete user"
-                  style={deleteBtnStyle}
-                >
-                  🗑️
-                </button>
+
+              <button
+                onClick={(e) => toggleMenuUser(e, user._id)}
+                style={menuBtn}
+                title="Options"
+              >
+                ⋮
+              </button>
+
+              {openMenuUserId === user._id && (
+                <div ref={menuRef} style={dropdownMenuStyle}>
+                  <div
+                    style={menuItemStyle}
+                    onClick={() => handleUpdateUser(user._id)}
+                  >
+                    ✏️ Update
+                  </div>
+                  <div
+                    style={{ ...menuItemStyle, borderBottom: 'none', color: '#ff4d4f' }}
+                    onClick={() => handleDeleteUser(user._id)}
+                  >
+                    🗑️ Delete
+                  </div>
+                </div>
               )}
             </div>
           );

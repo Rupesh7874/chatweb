@@ -3,19 +3,18 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Chat from './pages/Chat';
+import GroupPage from './pages/GroupPage'; // ✅ Import GroupPage
 
 function App() {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Load token on first render
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     setToken(storedToken);
     setLoading(false);
   }, []);
 
-  // ✅ Listen for custom "storage" event (triggered on login/logout)
   useEffect(() => {
     const handleStorage = () => {
       const updatedToken = localStorage.getItem('token');
@@ -26,7 +25,7 @@ function App() {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  if (loading) return null; // or a loader/spinner
+  if (loading) return null;
 
   return (
     <Router>
@@ -35,6 +34,7 @@ function App() {
         <Route path="/login" element={!token ? <Login /> : <Navigate to="/chat" />} />
         <Route path="/register" element={<Register />} />
         <Route path="/chat" element={token ? <Chat /> : <Navigate to="/login" />} />
+        <Route path="/groups" element={token ? <GroupPage /> : <Navigate to="/login" />} /> {/* ✅ NEW */}
       </Routes>
     </Router>
   );

@@ -117,56 +117,77 @@ exports.userlogin = async (req, res) => {
     }
 }
 
+
+
 exports.creategroup = async (req, res) => {
     try {
-        const { groupname, role } = req.body;
+        const { groupname, selectedUserIds } = req.body;
         const userId = req.userId;
-
-        if (role !== 'admin') {
-            return res.status(code.Forbidden).json({ sucess: false, status: code.Forbidden, message: "Only admins can create groups" })
+        const groupmemdata = await group.find().select({ groupname: 1, _id: 0 });
+        if (groupname == groupmemdata.groupname) {
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "group alredy ragister" })
         }
 
         const newGroup = await Group.create({
             groupname,
             createdBy: userId,
             members: [
-                {
-                    userId,
-                    role: role || 'admin'
-                }
+                { userId: userId, role: 'admin' }, // ✅ creator as admin
+                ...selectedUserIds.map(id => ({ userId: id, role: 'member' })) // ✅ selected users as members
             ]
         });
 
-        return res.status(code.CREATED).json({ sucess: true, message: "Group created successfully", group: newGroup })
+        return res.status(201).json({
+            success: true,
+            message: "Group created successfully",
+            group: newGroup
+        });
     } catch (err) {
         console.log(err);
-        return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
     }
-}
+};
 
 exports.request_join = async (req, res) => {
-    try {
-        const { groupid } = req.body
-        const userId = req.userId;
+    const { groupid } = req.body;
+    const userId = req.userId;
 
-        const checkgroup = await group.findById(groupid);
-        if (!checkgroup) {
-            return res.status(code.NOT_FOUND).json({ sucess: false, status: code.NOT_FOUND, message: "group not found" })
-        }
-        if (checkgroup.members.some(m => m.userId === userId)) {
-            return res.status(400).json({ message: 'Already a member' });
-        }
-        if (!checkgroup.joinRequests.includes(userId)) {
-            checkgroup.joinRequests.push(userId);
-            await checkgroup.save()
-        }
-        res.json({ message: 'Join request sent' });
-    }
-    catch (err) {
+    const group = await Group.findById(groupid);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    const isMember = group.members.some(m => m.userId.toString() === userId.toString());
+    const alreadyRequested = group.joinRequests.includes(userId);
+
+    if (isMember) return res.status(400).json({ message: 'Already a member' });
+    if (!alreadyRequested) group.joinRequests.push(userId);
+
+    await group.save();
+    return res.status(200).json({ message: 'Join request sent' });
+};
+
+exports.getAdminGroupsWithRequestCounts = async (req, res) => {
+    try {
+        const adminId = req.userId;
+
+        const groups = await Group.find({ 'members': { $elemMatch: { userId: adminId, role: 'admin' } } });
+
+        const result = groups.map(group => ({
+            groupId: group._id,
+            groupname: group.groupname,
+            pendingRequests: group.joinRequests.length
+        }));
+
+        return res.status(200).json({ groups: result });
+    } catch (err) {
         console.log(err);
-        res.status(500).json({ message: 'Failed to join request', error: err.message });
+        res.status(500).json({ message: "Internal server error" });
     }
-}
+};
+
+
 exports.approve_request = async (req, res) => {
     try {
         const { groupid, userid } = req.body;
@@ -428,7 +449,7 @@ exports.deletemessage = async (req, res) => {
     try {
         const id = req.query.messageId;
         console.log(id);
-        
+
         const messagedata = await messagemodel.findById(id);
         if (!messagedata) {
             return res.status(code.NOT_FOUND).json({ sucess: false, status: code.NOT_FOUND, message: "message not found" })
@@ -438,14 +459,65 @@ exports.deletemessage = async (req, res) => {
             fs.unlinkSync(oldimgpath);
         }
         const deletemessge = await messagemodel.findByIdAndDelete(id, { new: true });
-        if(!deletemessge){
+        if (!deletemessge) {
             return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "message not delete" });
         }
         req.io?.emit("messageDeleted", { messageId: id });
-        return res.status(code.OK).json({ sucess: true, status: code.OK, message: "message delete sucessfully", deletemessge:deletemessge });
+        return res.status(code.OK).json({ sucess: true, status: code.OK, message: "message delete sucessfully", deletemessge: deletemessge });
     }
     catch (error) {
         console.log(error);
+        return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
+    }
+}
+
+exports.makeAdmin = async (req, res) => {
+    try {
+        const { userid } = req.body;
+        const requesterId = req.userId;
+
+        const requester = await User.findById(requesterId);
+        if (!requester || requester.role !== 'admin') {
+            return res.status(403).json({ message: "Only admins can promote users" });
+        }
+
+        const user = await User.findById(userid);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        user.role = 'admin';
+        await user.save();
+
+        res.status(200).json({ message: "User promoted to admin", user });
+    } catch (err) {
+        console.log(err);
+        return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
+    }
+}
+
+exports.getContacts = async (req, res) => {
+    try {
+        const currentUserId = req.userId;
+        const users = await usermodel.find({ _id: { $ne: currentUserId } }).select('-password');
+        res.status(200).json({ contacts: users });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch contacts', error: err.message });
+    }
+};
+
+
+exports.updatemessage = async (req, res) => {
+    try {
+        const senderId=req.userId;
+        console.log("senderID",senderId);
+        
+        const { messageId } = req.params;
+        const messagedata= await messagemodel.findById(messageId);
+        console.log(toObject(messagedata.sender));
+        
+    }
+    catch (error) {
+        console.log(error);
+        
         return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
     }
 }

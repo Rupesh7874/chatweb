@@ -5,6 +5,7 @@ import UserInfo from "../components/Sidebar/UserInfo";
 import ContactList from "../components/Sidebar/ContactList";
 import ChatPanel from "../components/ChatWindow/ChatPanel";
 import LogoutButton from "../components/Sidebar/LogoutButton";
+import { useNavigate } from "react-router-dom";
 
 function Chat() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -15,10 +16,11 @@ function Chat() {
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
-  const socket = useRef(null);
 
+  const socket = useRef(null);
   const selectedUserRef = useRef(null);
   const selectedGroupRef = useRef(null);
+  const navigate = useNavigate();
 
   const handleDeleteUser = async (userId) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
@@ -34,6 +36,33 @@ function Chat() {
       console.error("Delete error:", err);
     }
   };
+
+  const handleDeleteGroup = async (groupId) => {
+    console.log("apoo",groupId);
+    
+    // if (!window.confirm("Are you sure you want to delete this group?")) return;
+
+    try {                        
+      await axios.delete(`http://localhost:8888/api/v1/user/deletegroup/${groupId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      setGroups((prev) => prev.filter((g) => g._id !== groupId));
+
+      // Clear messages if currently selected group is deleted
+      if (selectedGroup?._id === groupId) {
+        setSelectedGroup(null);
+        setMessages([]);
+      }
+      // alert("Group deleted");
+    } catch (err) {
+      console.error("Failed to delete group:", err);
+      alert("❌ Failed to delete group");
+    }
+  };
+
 
   useEffect(() => {
     selectedUserRef.current = selectedUser;
@@ -292,12 +321,32 @@ function Chat() {
           <LogoutButton />
         </div>
         <div style={{ flex: 1, overflowY: "auto" }}>
+          <button
+            onClick={() => navigate('/groups')}
+            style={{
+              width: '90%',
+              margin: '1rem auto',
+              padding: '0.5rem',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'block',
+              fontWeight: 'bold',
+              fontSize: '1rem',
+            }}
+          >
+            ➕ Create Group
+          </button>
+
           <ContactList
             users={users}
             groups={groups}
             selectedUserId={selectedUser?._id}
             selectedGroupId={selectedGroup?._id}
             onDeleteUser={handleDeleteUser}
+            onDeleteGroup={handleDeleteGroup}
             onSelectUser={(user) => {
               setSelectedUser(user);
               setSelectedGroup(null);
@@ -307,7 +356,6 @@ function Chat() {
               setSelectedGroup(group);
               setSelectedUser(null);
               setMessages([]);
-
               if (socket.current && group?._id) {
                 socket.current.emit("joinGroup", group._id);
               }
