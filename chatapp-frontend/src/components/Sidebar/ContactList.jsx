@@ -40,9 +40,24 @@ const deleteBtnStyle = {
   cursor: 'pointer',
 };
 
-function ContactList({ users = [], groups = [], onSelectUser, onSelectGroup, selectedUserId, selectedGroupId, onDeleteUser }) {
+function ContactList({
+  users = [],
+  groups = [],
+  onSelectUser,
+  onSelectGroup,
+  selectedUserId,
+  selectedGroupId,
+  onDeleteUser
+}) {
   return (
-    <div style={{ padding: '1rem', overflowY: 'auto', maxHeight: '100vh' }}>
+    <div
+      style={{
+        padding: '1rem',
+        overflowY: 'auto',
+        maxHeight: 'calc(100vh - 100px)', // adjust height based on your layout
+        scrollbarWidth: 'thin',
+      }}
+    >
       {/* Groups */}
       <h3 style={{ color: '#722ed1', marginBottom: '0.75rem' }}>📢 Groups</h3>
       {groups.length === 0 ? (
@@ -62,7 +77,9 @@ function ContactList({ users = [], groups = [], onSelectUser, onSelectGroup, sel
                 boxShadow: isSelected ? '0 0 8px rgba(114, 46, 209, 0.2)' : 'none',
               }}
             >
-              <div style={avatarStyle}>{group.groupname.charAt(0).toUpperCase()}</div>
+              <div style={avatarStyle}>
+                {group.groupname.charAt(0).toUpperCase()}
+              </div>
               <div style={textWrapper}>
                 <strong style={{ color: '#222' }}>{group.groupname}</strong><br />
                 <small style={{ color: '#888' }}>Group Chat</small>
@@ -86,7 +103,7 @@ function ContactList({ users = [], groups = [], onSelectUser, onSelectGroup, sel
                 ...cardBase,
                 backgroundColor: isSelected ? '#e6f7ff' : '#fafafa',
                 border: '2px solid',
-                borderColor: isSelected ? '#722ed1' : 'transparent',
+                borderColor: isSelected ? '#1890ff' : 'transparent',
                 boxShadow: isSelected ? '0 0 8px rgba(24, 144, 255, 0.2)' : 'none',
               }}
             >
@@ -94,14 +111,22 @@ function ContactList({ users = [], groups = [], onSelectUser, onSelectGroup, sel
                 onClick={() => onSelectUser(user)}
                 style={{ display: 'flex', alignItems: 'center', flex: 1 }}
               >
-                <div style={avatarStyle}>{user.name.charAt(0).toUpperCase()}</div>
+                <div style={avatarStyle}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
                 <div style={textWrapper}>
                   <strong style={{ color: '#222' }}>{user.name}</strong><br />
                   <small style={{ color: '#888' }}>{user.email}</small>
                 </div>
               </div>
               {onDeleteUser && (
-                <button onClick={() => onDeleteUser(user._id)} title="Delete user" style={deleteBtnStyle} >🗑️</button>
+                <button
+                  onClick={() => onDeleteUser(user._id)}
+                  title="Delete user"
+                  style={deleteBtnStyle}
+                >
+                  🗑️
+                </button>
               )}
             </div>
           );

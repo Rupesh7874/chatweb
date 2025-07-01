@@ -116,10 +116,15 @@ function Chat() {
       );
     });
 
+    socket.current.on("messageDeleted", ({ messageId }) => {
+      setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
+    });
+
     return () => {
       socket.current.off("receiveMessage", handleReceiveMessage);
       socket.current.off("typing", handleTyping);
       socket.current.off("messageSeenConfirmation");
+      socket.current.off("messageDeleted");
       socket.current.disconnect();
       socket.current = null;
     };
@@ -246,6 +251,10 @@ function Chat() {
     return () => clearTimeout(timer);
   }, [selectedGroup, messages, currentUser?._id]);
 
+  const handleDeleteMessage = (messageId) => {
+    setMessages(prev => prev.filter(msg => msg._id !== messageId));
+  };
+
   const handleSend = async (formData) => {
     const text = formData.get("content");
     const file = formData.get("usermassage");
@@ -276,58 +285,66 @@ function Chat() {
   if (loading || !currentUser) return null;
 
   return (
-    <div style={{ display: "flex", height: "100vh", backgroundColor: "#f5f5f5", overflow: "hidden" }}>
-      <div style={{ width: "25%", borderRight: "1px solid #ccc", padding: "1rem" }}>
-        <UserInfo user={currentUser} />
-        <LogoutButton />
-        <ContactList
-          users={users}
-          groups={groups}
-          selectedUserId={selectedUser?._id}
-          selectedGroupId={selectedGroup?._id}
-          onDeleteUser={handleDeleteUser}
-          onSelectUser={(user) => {
-            setSelectedUser(user);
-            setSelectedGroup(null);
-            setMessages([]);
-          }}
-          onSelectGroup={(group) => {
-            setSelectedGroup(group);
-            setSelectedUser(null);
-            setMessages([]);
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", backgroundColor: "#f5f5f5" }}>
+      <div style={{ width: "25%", height: "100%", borderRight: "1px solid #ccc", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "1rem", borderBottom: "1px solid #eee" }}>
+          <UserInfo user={currentUser} />
+          <LogoutButton />
+        </div>
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <ContactList
+            users={users}
+            groups={groups}
+            selectedUserId={selectedUser?._id}
+            selectedGroupId={selectedGroup?._id}
+            onDeleteUser={handleDeleteUser}
+            onSelectUser={(user) => {
+              setSelectedUser(user);
+              setSelectedGroup(null);
+              setMessages([]);
+            }}
+            onSelectGroup={(group) => {
+              setSelectedGroup(group);
+              setSelectedUser(null);
+              setMessages([]);
 
-            if (socket.current && group?._id) {
-              socket.current.emit("joinGroup", group._id);
+              if (socket.current && group?._id) {
+                socket.current.emit("joinGroup", group._id);
+              }
+            }}
+          />
+        </div>
+      </div>
+
+      <div style={{ flex: 1, height: "100%", overflow: "hidden" }}>
+        <ChatPanel
+          selectedUser={selectedUser}
+          selectedGroup={selectedGroup}
+          messages={messages}
+          onDelete={handleDeleteMessage}
+          setMessages={setMessages}
+          onSend={handleSend}
+          currentUserId={currentUser._id}
+          isTyping={isTyping}
+          onTyping={(typing) => {
+            if (socket.current) {
+              if (selectedUser) {
+                socket.current.emit("typing", {
+                  to: selectedUser._id,
+                  typing,
+                  isGroup: false,
+                });
+              } else if (selectedGroup) {
+                socket.current.emit("typing", {
+                  to: selectedGroup._id,
+                  typing,
+                  isGroup: true,
+                });
+              }
             }
           }}
         />
       </div>
-
-      <ChatPanel
-        selectedUser={selectedUser}
-        selectedGroup={selectedGroup}
-        messages={messages}
-        onSend={handleSend}
-        currentUserId={currentUser._id}
-        isTyping={isTyping}
-        onTyping={(typing) => {
-          if (socket.current) {
-            if (selectedUser) {
-              socket.current.emit("typing", {
-                to: selectedUser._id,
-                typing,
-                isGroup: false,
-              });
-            } else if (selectedGroup) {
-              socket.current.emit("typing", {
-                to: selectedGroup._id,
-                typing,
-                isGroup: true,
-              });
-            }
-          }
-        }}
-      />
     </div>
   );
 }

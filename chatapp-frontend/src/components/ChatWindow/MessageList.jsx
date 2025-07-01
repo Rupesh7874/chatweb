@@ -1,13 +1,23 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
-function MessageList({ messages, currentUserId }) {
+function MessageList({ messages, currentUserId, onDelete }) {
   const bottomRef = useRef(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   useEffect(() => {
-    if (messages.length > 0) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Close menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.message-menu')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const formatTime = (isoString) => {
     const date = new Date(isoString);
@@ -24,8 +34,9 @@ function MessageList({ messages, currentUserId }) {
 
         return (
           <div
-            key={index}
+            key={msg._id || index}
             style={{
+              position: 'relative',
               display: 'flex',
               flexDirection: 'column',
               alignItems: isSender ? 'flex-end' : 'flex-start',
@@ -40,6 +51,7 @@ function MessageList({ messages, currentUserId }) {
                 maxWidth: '60%',
                 wordBreak: 'break-word',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                position: 'relative',
               }}
             >
               {senderName && (
@@ -47,7 +59,9 @@ function MessageList({ messages, currentUserId }) {
                   {senderName}
                 </div>
               )}
+
               {msg.content && <div>{msg.content}</div>}
+
               {msg.fileUrl && (
                 <img
                   src={`http://localhost:8888${msg.fileUrl}`}
@@ -59,6 +73,7 @@ function MessageList({ messages, currentUserId }) {
                   }}
                 />
               )}
+
               <div
                 style={{
                   display: 'flex',
@@ -81,6 +96,79 @@ function MessageList({ messages, currentUserId }) {
                   </span>
                 )}
               </div>
+
+              {/* Vertical 3-dot Menu Toggle Button */}
+              {isSender && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenuId(openMenuId === msg._id ? null : msg._id);
+                  }}
+                  className="message-menu"
+                  style={{
+                    position: 'absolute',
+                    top: '6px',
+                    right: '6px',
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    color: '#666',
+                    lineHeight: '1',
+                  }}
+                  title="More"
+                >
+                  &#8942; {/* Unicode for vertical 3 dots */}
+                </button>
+              )}
+
+              {/* Dropdown Menu */}
+              {isSender && openMenuId === msg._id && (
+                <div
+                  className="message-menu"
+                  style={{
+                    position: 'absolute',
+                    top: '28px',
+                    right: '4px',
+                    backgroundColor: '#fff',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    zIndex: 1000,
+                    minWidth: '100px',
+                  }}
+                >
+                  <div
+                    onClick={() => {
+                      onDelete(msg._id);
+                      setOpenMenuId(null);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '14px',
+                      color: '#f44336',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #eee',
+                    }}
+                  >
+                    Delete
+                  </div>
+                  <div
+                    onClick={() => {
+                      alert('Edit feature coming soon');
+                      setOpenMenuId(null);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '14px',
+                      color: '#333',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Edit
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );

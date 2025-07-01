@@ -97,7 +97,7 @@ exports.userragister = async (req, res) => {
 exports.userlogin = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const cheakmail = await usermodel.findOne({ email: email });
+        const cheakmail = await usermodel.findOne({ email: email })
 
         if (!cheakmail) {
             return res.status(code.NOT_FOUND).json({ sucess: false, status: code.NOT_FOUND, message: "user not found" })
@@ -106,6 +106,8 @@ exports.userlogin = async (req, res) => {
         if (!cheackpass) {
             return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "password is not valid" })
         }
+        // const datawithoutpass = cheakmail.toObject();
+        // delete datawithoutpass.password;
         const token = jwt.sign({ userId: cheakmail._id, email: cheakmail.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
         return res.status(200).json({ msg: "user login sucessfully", cheakmail: cheakmail, token: token });
     }
@@ -416,6 +418,33 @@ exports.resetpassword = async (req, res) => {
         }
         return res.status(code.OK).json({ sucess: false, status: code.OK, message: "new password set sucessfully" })
     } catch (error) {
+        console.log(error);
+        return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
+    }
+}
+
+
+exports.deletemessage = async (req, res) => {
+    try {
+        const id = req.query.messageId;
+        console.log(id);
+        
+        const messagedata = await messagemodel.findById(id);
+        if (!messagedata) {
+            return res.status(code.NOT_FOUND).json({ sucess: false, status: code.NOT_FOUND, message: "message not found" })
+        }
+        if (messagedata.fileUrl) {
+            const oldimgpath = path.join(__dirname, '..', messagedata.fileUrl);
+            fs.unlinkSync(oldimgpath);
+        }
+        const deletemessge = await messagemodel.findByIdAndDelete(id, { new: true });
+        if(!deletemessge){
+            return res.status(code.BAD_REQUEST).json({ sucess: false, status: code.BAD_REQUEST, message: "message not delete" });
+        }
+        req.io?.emit("messageDeleted", { messageId: id });
+        return res.status(code.OK).json({ sucess: true, status: code.OK, message: "message delete sucessfully", deletemessge:deletemessge });
+    }
+    catch (error) {
         console.log(error);
         return res.status(code.SERVER_ERROR).json({ sucess: false, status: code.SERVER_ERROR, message: "internal server error" })
     }
