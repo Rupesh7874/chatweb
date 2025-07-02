@@ -219,17 +219,17 @@ function Chat() {
     setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
   };
 
- const handleUpdateMessage = async (messageId, updatedText) => {
-  try {
-    socket.current.emit("updateMessage", {
-      messageId,
-      content: updatedText,
-    });
-  } catch (err) {
-    alert("❌ Failed to update message");
-    console.error(err);
-  }
-};
+  const handleUpdateMessage = async (messageId, updatedText) => {
+    try {
+      socket.current.emit("updateMessage", {
+        messageId,
+        content: updatedText,
+      });
+    } catch (err) {
+      alert("❌ Failed to update message");
+      console.error(err);
+    }
+  };
 
 
   const handleDeleteGroup = async (groupId) => {
@@ -248,7 +248,22 @@ function Chat() {
       alert("❌ Failed to delete group");
     }
   };
+  //update user
+  const handleUpdateUser = async (userId) => {
+    if (!window.confirm("update this user?")) return;
+    try {
+      await axios.delete(`http://localhost:8888/api/v1/user/userdelete?userId=${userId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      setUsers((prev) => prev.filter((u) => u._id !== userId));
+    } catch {
+      alert("❌ Failed to delete user");
+    }
+  }
 
+  //Delete user
   const handleDeleteUser = async (userId) => {
     if (!window.confirm("Delete this user?")) return;
     try {
@@ -298,6 +313,7 @@ function Chat() {
             selectedUserId={selectedUser?._id}
             selectedGroupId={selectedGroup?._id}
             onDeleteUser={handleDeleteUser}
+            onUpdateUser={handleUpdateUser}
             onDeleteGroup={handleDeleteGroup}
             onSelectUser={(user) => {
               setSelectedUser(user);

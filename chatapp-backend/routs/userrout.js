@@ -9,7 +9,7 @@ const user = require('../models/usermodel');
 //user rout-start
 routs.post('/userragister', user.userminimage, userragister);
 routs.post('/userlogin', userlogin);
-routs.put('/userupdate/:id', user.userminimage, userupdate);
+routs.put('/userupdate/:userId', user.userminimage, userupdate);
 routs.delete('/userdelete', userdelete);
 routs.get('/allusers', verifyToken, allusers);
 routs.post('/forgatepassword', forgatepassword);

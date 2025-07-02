@@ -69,6 +69,7 @@ function ContactList({
   selectedUserId,
   selectedGroupId,
   onDeleteUser,
+  onUpdateUser,
   onDeleteGroup, // ✅ New prop
 }) {
   const [openMenuUserId, setOpenMenuUserId] = useState(null);
@@ -104,7 +105,9 @@ function ContactList({
   };
 
   const handleUpdateUser = (userId) => {
-    alert(`Update user ${userId}`);
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      onUpdateUser(userId);
+    }
     setOpenMenuUserId(null);
   };
 
