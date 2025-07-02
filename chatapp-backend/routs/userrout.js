@@ -26,7 +26,7 @@ routs.get('/conversation', verifyToken, conversation);
 routs.get('/contacts', verifyToken, getContacts);
 
 routs.delete('/deletemessage', deletemessage);
-routs.put('/updatemessage/:messageId', verifyToken, updatemessage);
+routs.patch('/updatemessage/:messageId', verifyToken, updatemessage);
 routs.post('/makeAdmin ', makeAdmin);
 routs.get('/getUserGroups/:userid', verifyToken, getUserGroups)
 routs.get('/getAdminGroupsWithRequestCounts', getAdminGroupsWithRequestCounts);

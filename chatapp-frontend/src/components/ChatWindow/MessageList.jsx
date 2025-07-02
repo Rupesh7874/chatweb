@@ -1,18 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-function MessageList({ messages, currentUserId, onDelete }) {
+function MessageList({ messages, currentUserId, onDelete, onUpdate }) {
   const bottomRef = useRef(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editText, setEditText] = useState('');
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Close menu on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('.message-menu')) {
+      if (
+        !e.target.closest('.message-menu') &&
+        !e.target.closest('.edit-box')
+      ) {
         setOpenMenuId(null);
+        setEditingMessageId(null);
       }
     };
     document.addEventListener('click', handleClickOutside);
@@ -31,6 +36,7 @@ function MessageList({ messages, currentUserId, onDelete }) {
         const isSender = senderId === currentUserId;
         const time = msg.timestamp || msg.createdAt || '';
         const senderName = !isSender && typeof msg.sender === 'object' ? msg.sender.name : '';
+        const isEditing = editingMessageId === msg._id;
 
         return (
           <div
@@ -60,45 +66,99 @@ function MessageList({ messages, currentUserId, onDelete }) {
                 </div>
               )}
 
-              {msg.content && <div>{msg.content}</div>}
+              {isEditing ? (
+                <div className="edit-box" style={{ marginTop: '4px' }}>
+                  <input
+                    type="text"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid #ccc',
+                      fontSize: '14px',
+                    }}
+                  />
+                  <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => {
+                        setEditingMessageId(null);
+                        setEditText('');
+                      }}
+                      style={{
+                        padding: '4px 10px',
+                        backgroundColor: '#eee',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (editText.trim()) {
+                          onUpdate(msg._id, editText.trim());
+                          setEditingMessageId(null);
+                          setEditText('');
+                        }
+                      }}
+                      style={{
+                        padding: '4px 10px',
+                        backgroundColor: '#4CAF50',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {msg.content && <div>{msg.content}</div>}
 
-              {msg.fileUrl && (
-                <img
-                  src={`http://localhost:8888${msg.fileUrl}`}
-                  alt="sent"
-                  style={{
-                    maxWidth: '200px',
-                    borderRadius: '8px',
-                    marginTop: msg.content ? '8px' : 0,
-                  }}
-                />
+                  {msg.fileUrl && (
+                    <img
+                      src={`http://localhost:8888${msg.fileUrl}`}
+                      alt="sent"
+                      style={{
+                        maxWidth: '200px',
+                        borderRadius: '8px',
+                        marginTop: msg.content ? '8px' : 0,
+                      }}
+                    />
+                  )}
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      color: '#777',
+                      marginTop: '4px',
+                    }}
+                  >
+                    <span>{formatTime(time)}</span>
+                    {isSender && (
+                      <span style={{ marginLeft: '8px' }}>
+                        {msg.status === 'seen' ? (
+                          <span style={{ color: '#4fc3f7' }}>✔✔</span>
+                        ) : msg.status === 'delivered' ? (
+                          <span style={{ color: '#9e9e9e' }}>✔✔</span>
+                        ) : (
+                          <span style={{ color: '#9e9e9e' }}>✔</span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </>
               )}
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '0.75rem',
-                  color: '#777',
-                  marginTop: '4px',
-                }}
-              >
-                <span>{formatTime(time)}</span>
-                {isSender && (
-                  <span style={{ marginLeft: '8px' }}>
-                    {msg.status === 'seen' ? (
-                      <span style={{ color: '#4fc3f7' }}>✔✔</span>
-                    ) : msg.status === 'delivered' ? (
-                      <span style={{ color: '#9e9e9e' }}>✔✔</span>
-                    ) : (
-                      <span style={{ color: '#9e9e9e' }}>✔</span>
-                    )}
-                  </span>
-                )}
-              </div>
-
-              {/* Vertical 3-dot Menu Toggle Button */}
-              {isSender && (
+              {isSender && !isEditing && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -108,7 +168,7 @@ function MessageList({ messages, currentUserId, onDelete }) {
                   style={{
                     position: 'absolute',
                     top: '6px',
-                    right: '6px',
+                    right: '0px',
                     background: 'transparent',
                     border: 'none',
                     fontSize: '18px',
@@ -118,11 +178,10 @@ function MessageList({ messages, currentUserId, onDelete }) {
                   }}
                   title="More"
                 >
-                  &#8942; {/* Unicode for vertical 3 dots */}
+                  &#8942;
                 </button>
               )}
 
-              {/* Dropdown Menu */}
               {isSender && openMenuId === msg._id && (
                 <div
                   className="message-menu"
@@ -153,20 +212,24 @@ function MessageList({ messages, currentUserId, onDelete }) {
                   >
                     Delete
                   </div>
-                  <div
-                    onClick={() => {
-                      alert('Edit feature coming soon');
-                      setOpenMenuId(null);
-                    }}
-                    style={{
-                      padding: '8px 12px',
-                      fontSize: '14px',
-                      color: '#333',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Edit
-                  </div>
+                  {!msg.fileUrl && (
+                    <div
+                      onClick={() => {
+                        setEditText(msg.content || '');
+                        setEditingMessageId(msg._id);
+                        setOpenMenuId(null);
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        fontSize: '14px',
+                        color: '#333',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Edit
+                    </div>
+                  )}
+
                 </div>
               )}
             </div>

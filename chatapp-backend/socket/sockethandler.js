@@ -52,6 +52,28 @@ module.exports = function (io) {
       }
     });
 
+    //update message
+
+    socket.on('updateMessage', async ({ messageId, content, fileUrl }) => {
+      try {
+        const updated = await message.findByIdAndUpdate(
+          messageId,
+          { ...(content && { content }), ...(fileUrl && { fileUrl }) },
+          { new: true }
+        );
+
+        if (updated) {
+          io.to(updated.receiver.toString()).emit("messageUpdated", updated);
+          io.to(updated.sender.toString()).emit("messageUpdated", updated);
+        }
+      } catch (err) {
+        console.error("❌ Error updating message:", err.message);
+        socket.emit("error", { message: "Message update failed" });
+      }
+    });
+
+
+
     // ✅ Typing
     socket.on("typing", ({ to, typing, isGroup }) => {
       if (isGroup) {

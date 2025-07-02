@@ -1,3 +1,4 @@
+// Chat.jsx — Updated with message update (edit) support
 import { io } from "socket.io-client";
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
@@ -22,55 +23,8 @@ function Chat() {
   const selectedGroupRef = useRef(null);
   const navigate = useNavigate();
 
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
-    try {
-      await axios.delete(`http://localhost:8888/api/v1/user/userdelete?userId=${userId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      setUsers((prev) => prev.filter((u) => u._id !== userId));
-    } catch (err) {
-      alert("Failed to delete user");
-      console.error("Delete error:", err);
-    }
-  };
-
-  const handleDeleteGroup = async (groupId) => {
-    console.log("apoo",groupId);
-    
-    // if (!window.confirm("Are you sure you want to delete this group?")) return;
-
-    try {                        
-      await axios.delete(`http://localhost:8888/api/v1/user/deletegroup/${groupId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      setGroups((prev) => prev.filter((g) => g._id !== groupId));
-
-      // Clear messages if currently selected group is deleted
-      if (selectedGroup?._id === groupId) {
-        setSelectedGroup(null);
-        setMessages([]);
-      }
-      // alert("Group deleted");
-    } catch (err) {
-      console.error("Failed to delete group:", err);
-      alert("❌ Failed to delete group");
-    }
-  };
-
-
-  useEffect(() => {
-    selectedUserRef.current = selectedUser;
-  }, [selectedUser]);
-
-  useEffect(() => {
-    selectedGroupRef.current = selectedGroup;
-  }, [selectedGroup]);
+  useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
+  useEffect(() => { selectedGroupRef.current = selectedGroup; }, [selectedGroup]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -79,7 +33,7 @@ function Chat() {
 
     try {
       const parsedUser = JSON.parse(user);
-      if (!parsedUser._id) throw new Error("User ID missing");
+      if (!parsedUser._id) throw new Error("Invalid user");
       setCurrentUser(parsedUser);
     } catch {
       localStorage.removeItem("token");
@@ -91,57 +45,35 @@ function Chat() {
 
   useEffect(() => {
     if (!currentUser?._id) return;
-
     const token = localStorage.getItem("token");
     if (!token) return;
 
     if (socket.current) socket.current.disconnect();
-
     socket.current = io("http://localhost:8888", { auth: { token } });
 
     socket.current.on("connect", () => {
       socket.current.emit("join");
     });
 
-    const handleReceiveMessage = (msg) => {
-      if (msg.isGroup) {
-        if (msg.receiver === selectedGroupRef.current?._id) {
-          setMessages((prev) => [...prev, msg]);
-        }
-      } else {
-        const selected = selectedUserRef.current;
-        if (
-          selected &&
-          (msg.sender === selected._id || msg.receiver === selected._id)
-        ) {
-          setMessages((prev) => [...prev, msg]);
-        }
+    socket.current.on("receiveMessage", (msg) => {
+      const target = msg.isGroup ? selectedGroupRef.current?._id : selectedUserRef.current?._id;
+      if ((msg.receiver === target || msg.sender === target)) {
+        setMessages((prev) => [...prev, msg]);
       }
-    };
+    });
 
-    const handleTyping = ({ from, typing, isGroup, to }) => {
-      if (!isGroup) {
-        const selected = selectedUserRef.current;
-        if (selected && from === selected._id) {
-          setIsTyping(typing);
-        }
-      } else {
-        const selectedGroup = selectedGroupRef.current;
-        if (selectedGroup && to === selectedGroup._id) {
-          const typingUser = users.find((u) => u._id === from);
-          setIsTyping(typing ? { name: typingUser?.name || "Someone" } : null);
-        }
+    socket.current.on("typing", ({ from, typing, isGroup, to }) => {
+      if (!isGroup && from === selectedUserRef.current?._id) {
+        setIsTyping(typing);
+      } else if (isGroup && to === selectedGroupRef.current?._id) {
+        const user = users.find((u) => u._id === from);
+        setIsTyping(typing ? { name: user?.name || "Someone" } : null);
       }
-    };
-
-    socket.current.on("receiveMessage", handleReceiveMessage);
-    socket.current.on("typing", handleTyping);
+    });
 
     socket.current.on("messageSeenConfirmation", ({ messageId }) => {
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg._id === messageId ? { ...msg, status: "seen" } : msg
-        )
+        prev.map((msg) => (msg._id === messageId ? { ...msg, status: "seen" } : msg))
       );
     });
 
@@ -149,11 +81,13 @@ function Chat() {
       setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
     });
 
+    socket.current.on("messageUpdated", (updatedMsg) => {
+      setMessages((prev) =>
+        prev.map((msg) => (msg._id === updatedMsg._id ? updatedMsg : msg))
+      );
+    });
+
     return () => {
-      socket.current.off("receiveMessage", handleReceiveMessage);
-      socket.current.off("typing", handleTyping);
-      socket.current.off("messageSeenConfirmation");
-      socket.current.off("messageDeleted");
       socket.current.disconnect();
       socket.current = null;
     };
@@ -168,108 +102,84 @@ function Chat() {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        const usersList = Array.isArray(res.data?.data) ? res.data.data : [];
-        setUsers(usersList.filter((u) => u._id !== currentUser._id));
+        const list = res.data?.data || [];
+        setUsers(list.filter((u) => u._id !== currentUser._id));
       })
       .catch((err) => {
         if (err.response?.status === 401) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
+          localStorage.clear();
           window.location.href = "/login";
         }
       });
   }, [currentUser]);
 
   useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:8888/api/v1/group/joined", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setGroups(res.data?.groups || []);
-      } catch (err) {
-        console.error("❌ Failed to fetch groups", err);
-      }
-    };
+    if (!currentUser?._id) return;
 
-    if (currentUser?._id) fetchGroups();
+    axios
+      .get("http://localhost:8888/api/v1/group/joined", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+      .then((res) => setGroups(res.data?.groups || []))
+      .catch((err) => console.error("❌ Group fetch error:", err));
   }, [currentUser]);
 
   useEffect(() => {
-    const fetchConversation = async () => {
-      if (!selectedUser || !currentUser) return;
+    if (!selectedUser || !currentUser) return;
 
-      try {
-        const res = await axios.get("http://localhost:8888/api/v1/user/conversation", {
-          params: {
-            user1: currentUser._id,
-            user2: selectedUser._id,
-          },
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        setMessages(res.data?.data || []);
-      } catch (err) {
-        console.error("❌ Error loading conversation:", err);
-      }
-    };
-
-    fetchConversation();
-  }, [selectedUser?._id, currentUser?._id, selectedUser, currentUser]);
+    axios
+      .get("http://localhost:8888/api/v1/user/conversation", {
+        params: {
+          user1: currentUser._id,
+          user2: selectedUser._id,
+        },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => setMessages(res.data?.data || []))
+      .catch((err) => console.error("❌ Conversation error:", err));
+  }, [selectedUser?._id, currentUser?._id]);
 
   useEffect(() => {
-    const fetchGroupMessages = async () => {
-      if (!selectedGroup || !currentUser) return;
+    if (!selectedGroup || !currentUser) return;
 
-      try {
-        const res = await axios.get(
-          `http://localhost:8888/api/v1/group/messages/${selectedGroup._id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-        setMessages(res.data?.data || []);
-      } catch (err) {
-        console.error("❌ Failed to fetch group messages:", err);
-      }
-    };
-
-    fetchGroupMessages();
-  }, [selectedGroup?._id, currentUser?._id, selectedGroup, currentUser]);
+    axios
+      .get(`http://localhost:8888/api/v1/group/messages/${selectedGroup._id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => setMessages(res.data?.data || []))
+      .catch((err) => console.error("❌ Group message error:", err));
+  }, [selectedGroup?._id, currentUser?._id]);
 
   useEffect(() => {
     if (!socket.current || !selectedUser || !messages.length || !currentUser?._id) return;
 
-    const unseenMessages = messages.filter(
+    const unseen = messages.filter(
       (msg) =>
         msg.sender === selectedUser._id &&
         msg.receiver === currentUser._id &&
         msg.status !== "seen"
     );
 
-    unseenMessages.forEach((msg) => {
+    unseen.forEach((msg) => {
       socket.current.emit("messageSeen", {
         messageId: msg._id,
         receiverId: currentUser._id,
       });
     });
-  }, [selectedUser, messages, currentUser?._id]);
+  }, [selectedUser, messages]);
 
   useEffect(() => {
     if (!socket.current || !selectedGroup || !messages.length || !currentUser?._id) return;
 
     const timer = setTimeout(() => {
-      const unseenMessages = messages.filter(
-        (msg) =>
-          msg.sender !== currentUser._id &&
-          msg.status !== "seen"
+      const unseen = messages.filter(
+        (msg) => msg.sender !== currentUser._id && msg.status !== "seen"
       );
-
-      unseenMessages.forEach((msg) => {
+      unseen.forEach((msg) => {
         socket.current.emit("messageSeen", {
           messageId: msg._id,
           receiverId: currentUser._id,
@@ -278,11 +188,7 @@ function Chat() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [selectedGroup, messages, currentUser?._id]);
-
-  const handleDeleteMessage = (messageId) => {
-    setMessages(prev => prev.filter(msg => msg._id !== messageId));
-  };
+  }, [selectedGroup, messages]);
 
   const handleSend = async (formData) => {
     const text = formData.get("content");
@@ -293,9 +199,7 @@ function Chat() {
       const uploadRes = await axios.post(
         "http://localhost:8888/api/v1/upload",
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
       fileUrl = uploadRes.data?.url;
     }
@@ -311,6 +215,54 @@ function Chat() {
     socket.current.emit("message", newMsg);
   };
 
+  const handleDeleteMessage = (messageId) => {
+    setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
+  };
+
+ const handleUpdateMessage = async (messageId, updatedText) => {
+  try {
+    socket.current.emit("updateMessage", {
+      messageId,
+      content: updatedText,
+    });
+  } catch (err) {
+    alert("❌ Failed to update message");
+    console.error(err);
+  }
+};
+
+
+  const handleDeleteGroup = async (groupId) => {
+    try {
+      await axios.delete(`http://localhost:8888/api/v1/user/deletegroup/${groupId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      setGroups((prev) => prev.filter((g) => g._id !== groupId));
+      if (selectedGroup?._id === groupId) {
+        setSelectedGroup(null);
+        setMessages([]);
+      }
+    } catch (err) {
+      alert("❌ Failed to delete group");
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm("Delete this user?")) return;
+    try {
+      await axios.delete(`http://localhost:8888/api/v1/user/userdelete?userId=${userId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      setUsers((prev) => prev.filter((u) => u._id !== userId));
+    } catch {
+      alert("❌ Failed to delete user");
+    }
+  };
+
   if (loading || !currentUser) return null;
 
   return (
@@ -322,19 +274,19 @@ function Chat() {
         </div>
         <div style={{ flex: 1, overflowY: "auto" }}>
           <button
-            onClick={() => navigate('/groups')}
+            onClick={() => navigate("/groups")}
             style={{
-              width: '90%',
-              margin: '1rem auto',
-              padding: '0.5rem',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'block',
-              fontWeight: 'bold',
-              fontSize: '1rem',
+              width: "90%",
+              margin: "1rem auto",
+              padding: "0.5rem",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              display: "block",
+              fontWeight: "bold",
+              fontSize: "1rem",
             }}
           >
             ➕ Create Group
@@ -356,9 +308,7 @@ function Chat() {
               setSelectedGroup(group);
               setSelectedUser(null);
               setMessages([]);
-              if (socket.current && group?._id) {
-                socket.current.emit("joinGroup", group._id);
-              }
+              socket.current.emit("joinGroup", group._id);
             }}
           />
         </div>
@@ -370,25 +320,25 @@ function Chat() {
           selectedGroup={selectedGroup}
           messages={messages}
           onDelete={handleDeleteMessage}
+          onUpdate={handleUpdateMessage}
           setMessages={setMessages}
           onSend={handleSend}
           currentUserId={currentUser._id}
           isTyping={isTyping}
           onTyping={(typing) => {
-            if (socket.current) {
-              if (selectedUser) {
-                socket.current.emit("typing", {
-                  to: selectedUser._id,
-                  typing,
-                  isGroup: false,
-                });
-              } else if (selectedGroup) {
-                socket.current.emit("typing", {
-                  to: selectedGroup._id,
-                  typing,
-                  isGroup: true,
-                });
-              }
+            if (!socket.current) return;
+            if (selectedUser) {
+              socket.current.emit("typing", {
+                to: selectedUser._id,
+                typing,
+                isGroup: false,
+              });
+            } else if (selectedGroup) {
+              socket.current.emit("typing", {
+                to: selectedGroup._id,
+                typing,
+                isGroup: true,
+              });
             }
           }}
         />
