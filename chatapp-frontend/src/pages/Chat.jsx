@@ -252,14 +252,25 @@ function Chat() {
   const handleUpdateUser = async (userId) => {
     if (!window.confirm("update this user?")) return;
     try {
-      await axios.delete(`http://localhost:8888/api/v1/user/userdelete?userId=${userId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+      await axios.put(
+        `http://localhost:8888/api/v1/user/userupdate/${userId}`,
+        {
+          name: "Updated Name",
+          email: "updatedemail@example.com",
+          password: "newpass123",
+          confirmpassword: "newpass123",
+          age: 25,
+          gender: "Male",
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      ); 
       setUsers((prev) => prev.filter((u) => u._id !== userId));
     } catch {
-      alert("❌ Failed to delete user");
+      alert("❌ Failed to update user");
     }
   }
 

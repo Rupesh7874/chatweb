@@ -283,8 +283,8 @@ exports.conversation = async (req, res) => {
 exports.userupdate = async (req, res) => {
     try {
         const { name, email, password, confirmpassword, age, gender } = req.body;
-        const { id } = req.params
-        const cheakmail = await usermodel.findById(id);
+        const { userId  } = req.params
+        const cheakmail = await usermodel.findById(userId );
 
         if (!cheakmail) {
             return res.status(400).json({ msg: "user not found", status: 0 })
@@ -339,7 +339,7 @@ exports.userupdate = async (req, res) => {
             gender,
             profileimage: req.file ? newimgpath : oldimgpath
         }
-        const newuser = await usermodel.findByIdAndUpdate(id, updateuser, { new: true });
+        const newuser = await usermodel.findByIdAndUpdate(userId, updateuser, { new: true });
         if (!newuser) {
             res.status(400).json({ msg: "user not update", status: 0 })
         }

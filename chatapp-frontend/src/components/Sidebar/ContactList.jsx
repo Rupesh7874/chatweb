@@ -105,7 +105,7 @@ function ContactList({
   };
 
   const handleUpdateUser = (userId) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
+    if (window.confirm("Are you sure you want to update this user?")) {
       onUpdateUser(userId);
     }
     setOpenMenuUserId(null);
