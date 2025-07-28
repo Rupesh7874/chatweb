@@ -34,7 +34,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Mount routes
+
 const api1router = require('./routs/indexrout');
 app.use('/api/v1', api1router);
 
@@ -44,7 +44,7 @@ app.use('/api/v1/upload', uploadRoute);
 const groupRoutes = require('./routs/grouproute');
 app.use('/api/v1/group', groupRoutes);
 
-// ✅ Start server
+
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
   console.log("server running successfully on port", PORT);

@@ -2,15 +2,35 @@ const mongoose = require('mongoose');
 
 const conectdb = async (req, res) => {
     try {
-        mongoose.connect("mongodb://127.0.0.1/chatapp");
-        console.log("db connected");
-        
+        mongoose.connect("mongodb://127.0.0.1/chatapp")
+            .then(() => {
+                console.log("mongodb connected...");
+            })
+            .catch(err => console.log(err.message))
     }
     catch (error) {
         console.log(error);
     }
 }
 
+mongoose.connection.on("error", err => {
+    console.log(err.message);
+});
+
+mongoose.connection.on("desconected", () => {
+    console.log("mongoose connection is disconnected..");
+});
+
+// Event listener for SIGINT signal (typically sent from the terminal)(ctrl+c).
+// This is used to handle graceful shutdown of the application.
+process.on('SIGINT', () => {
+    mongoose.connection.close(() => { // Close the MongoDB connection.
+        console.log(
+            'Mongoose connection is disconnected due to app termination...'
+        );
+        process.exit(0); // Exit the process after the connection is closed.
+    });
+});
 module.exports = conectdb;
 
 
@@ -74,4 +94,3 @@ module.exports = conectdb;
 //     });
 //   });
 // };
-                
